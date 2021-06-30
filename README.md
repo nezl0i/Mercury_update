@@ -1,1 +1,1 @@
-# Mercury_update
+# Mercury_fw_update
