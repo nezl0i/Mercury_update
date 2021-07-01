@@ -31,7 +31,7 @@ class ExchangeProtocol(UartSerialPort):
         self._access = format(access, '02X')
         self.buffer = ''
         self.param = ''
-        self.OUT = []
+        self.hex_out = []
 
         self.COMMAND = {'TEST': [self.id, '00'],
                         'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
@@ -42,6 +42,9 @@ class ExchangeProtocol(UartSerialPort):
                         'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
                         'GET_VECTORS': [self.id, '06 04', self.param],
                         'GET_FIRMWARE': [self.id, '07 05', self.param]}
+
+    def clear(self):
+        return self.hex_out.clear()
 
     @property
     def passwd(self):
@@ -61,6 +64,7 @@ class ExchangeProtocol(UartSerialPort):
     @repeat
     def exchange(self, command_name, count, param=''):
         tmp_buffer = ''
+        self.clear()
         if param:
             self.COMMAND[command_name].pop()
             self.COMMAND[command_name].append(param)
@@ -97,11 +101,12 @@ class ExchangeProtocol(UartSerialPort):
             elif line.startswith('q'):
                 send_command = f'12 0F 3C 0F FC 10'
                 a = self.exchange('GET_FIRMWARE', 4, param=send_command)
-                self.OUT.append(a[2])
+                self.hex_out.append(a[2])
+                return self.hex_out
             else:
                 send_command = f'{arg_value} {hi_address} {lo_address} {line.rstrip()}'
                 a = self.exchange('GET_FIRMWARE', 4, param=send_command)
-                self.OUT.append(a[2])
+                self.hex_out.append(a[2])
                 if lo_address == 'FF':
                     hi_address = format(int(hi_address, 16) + 1, "02X")
                     lo_address = '00'
@@ -109,35 +114,49 @@ class ExchangeProtocol(UartSerialPort):
                 else:
                     lo_address = format(int(lo_address, 16) + 1, "02X")
                     arg_value = '00'
-        return self.OUT
 
     def test_channel(self):
-        return self.exchange('TEST', 4)
+        a = self.exchange('TEST', 4)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def open_session(self):
-        return self.exchange('OPEN_SESSION', 4)
+        a = self.exchange('OPEN_SESSION', 4)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def close_session(self):
-        return self.exchange('CLOSE_SESSION', 4)
+        a = self.exchange('CLOSE_SESSION', 4)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def read_identifier(self):
-        return self.exchange('GET_IDENTIFIER', 5)
+        a = self.exchange('GET_IDENTIFIER', 5)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def read_serial(self):
-        return self.exchange('GET_SERIAL', 10)
+        a = self.exchange('GET_SERIAL', 10)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def execution(self):
-        return self.exchange('GET_EXECUTION', 27)
+        a = self.exchange('GET_EXECUTION', 27)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def descriptor(self):
-        return self.exchange('GET_DESCRIPTOR', 5)
+        a = self.exchange('GET_DESCRIPTOR', 5)
+        self.hex_out.append(a[2])
+        return self.hex_out
 
     def get_firmware(self, file):
         return self.update_firmware(file)
 
     def get_vectors(self):
+        vectors = []
         param = ['F1 C0 10', 'F1 D0 10', 'F1 E0 10', 'F1 F0 10']
         for i in range(len(param)):
             a = self.exchange('GET_VECTORS', 19, param=param[i])
-            self.OUT.append(a[2])
-        return self.OUT
+            vectors.append(a[2])
+        return vectors
