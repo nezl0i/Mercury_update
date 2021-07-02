@@ -116,38 +116,31 @@ class ExchangeProtocol(UartSerialPort):
                     arg_value = '00'
 
     def test_channel(self):
-        a = self.exchange('TEST', 4)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('TEST', 4)[2])
         return self.hex_out
 
     def open_session(self):
-        a = self.exchange('OPEN_SESSION', 4)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('OPEN_SESSION', 4)[2])
         return self.hex_out
 
     def close_session(self):
-        a = self.exchange('CLOSE_SESSION', 4)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('CLOSE_SESSION', 4)[2])
         return self.hex_out
 
     def read_identifier(self):
-        a = self.exchange('GET_IDENTIFIER', 5)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('GET_IDENTIFIER', 5)[2])
         return self.hex_out
 
     def read_serial(self):
-        a = self.exchange('GET_SERIAL', 10)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('GET_SERIAL', 10)[2])
         return self.hex_out
 
     def execution(self):
-        a = self.exchange('GET_EXECUTION', 27)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('GET_EXECUTION', 27)[2])
         return self.hex_out
 
     def descriptor(self):
-        a = self.exchange('GET_DESCRIPTOR', 5)
-        self.hex_out.append(a[2])
+        self.hex_out.append(self.exchange('GET_DESCRIPTOR', 5)[2])
         return self.hex_out
 
     def get_firmware(self, file):

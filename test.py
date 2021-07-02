@@ -4,6 +4,7 @@ from ex_protocol import ExchangeProtocol
 from colors import Colors
 
 c = Colors()
+check_out = []
 
 
 def create_parser():
@@ -46,8 +47,6 @@ def get_out(tmp):
         tmp == "05": "Не открыт канал связи"
     }[True]
 
-
-check_out = []
 
 if __name__ == "__main__":
 
