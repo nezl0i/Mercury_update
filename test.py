@@ -31,7 +31,7 @@ port_timeout = parser.timeout
 file = parser.file
 mode = parser.mode
 
-uart = ExchangeProtocol(
+protocol = ExchangeProtocol(
     port,
     port_sys_timeout,
     identifier=target_id,
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     #           Тест канала связи
     # =============================================
 
-    for el in uart.test_channel():
+    for el in protocol.test_channel():
         check_out = el.split(' ')
     print(f'{c.GREEN}Тест канала связи - {get_out(check_out[1])}{c.END}')
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     #           Открытие канала связи
     # =============================================
 
-    for el in uart.open_session():
+    for el in protocol.open_session():
         check_out = el.split(' ')
     print(f'{c.GREEN}Открытие канала связи - {get_out(check_out[1])}{c.END}')
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     #           Закрытие канала связи
     # =============================================
 
-    # for el in uart.close_session():
+    # for el in protocol.close_session():
     #     check_out = el.split(' ')
     # print(f'{c.GREEN}Закрытие канала связи - {get_out(check_out[1])}{c.END}')
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     #           Чтение ID прибора учета
     # =============================================
 
-    for el in uart.read_identifier():
+    for el in protocol.read_identifier():
         check_out = el.split(' ')
     id_result = int(check_out[2], 16)
     print(f'{c.GREEN}Идентификатор ПУ - {id_result}{c.END}')
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     #            35310276 10.07.2018
     # =============================================
 
-    for el in uart.read_serial():
+    for el in protocol.read_serial():
         check_out = el.split(' ')
     tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), check_out))
     serial_result = ''.join(tmp_check_out[1:5])
@@ -110,13 +110,13 @@ if __name__ == "__main__":
     """
     Доделать расшифровку варианта исполения
     """
-    print(uart.execution())
+    print(protocol.execution())
 
     # =============================================
     #           Дескриптор
     # =============================================
 
-    for el in uart.descriptor():
+    for el in protocol.descriptor():
         check_out = el.split(' ')
     print(f'{c.GREEN}Дескриптор ПУ - {check_out[2]}{check_out[1]}{c.END}')
     #
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     #           Вектора прерываний
     # =============================================
 
-    tmp_vectors = uart.get_vectors()
+    tmp_vectors = protocol.get_vectors()
     print(f'{c.GREEN}Вектора прерываний:{c.END}')
     for el in tmp_vectors:
         print(f'{c.GREEN}{el[3:50]}{c.END}')
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     # file_update = 'update/firmware.txt'
     #
-    # for el in uart.update_firmware(file=file_update):
+    # for el in protocol.update_firmware(file=file_update):
     #     check_out = el.split(' ')
     # if check_out[1] == '00':
     #     print(f'{c.GREEN}Обновление выполнено успешно!{c.END}')
