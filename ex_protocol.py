@@ -24,7 +24,7 @@ def repeat(func):
 
 
 class ExchangeProtocol(UartSerialPort):
-    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1):
+    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1, mode=0):
         super().__init__(port_name, port_timeout)
         self.__password = ' '.join((format(int(i), '02X')) for i in password)
         self.__id = format(identifier, '02X')
@@ -32,6 +32,7 @@ class ExchangeProtocol(UartSerialPort):
         self.buffer = ''
         self.param = ''
         self.hex_out = []
+        self.mode = mode
 
         self.COMMAND = {'TEST': [self.id, '00'],
                         'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
