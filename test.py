@@ -17,7 +17,7 @@ def create_parser():
     argv_parser.add_argument('-pwd', '--password', type=str, default='252696')  # Пароль пользователя
     argv_parser.add_argument('-f', '--file', default='update/firmware.txt')  # Файл прошивки
     argv_parser.add_argument('-m', '--mode', default=0)  # Режим: 0-"RS-485", 1-"CSD", 2-"TCP/IP"
-    argv_parser.add_argument('-ph', '--phone', default='+79898503741')  # Номер для CSD соединения
+    argv_parser.add_argument('-ph', '--phone', default='')  # Номер для CSD соединения
     return argv_parser
 
 
