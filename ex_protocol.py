@@ -17,14 +17,17 @@ def repeat(func):
             if check:
                 print(f'[{current_time}] :{c.FAIL} <<', tmp, c.END)
                 return check, get_hex, tmp
-            sleep(2)
+            sleep(1)
         print(f'{c.WARNING}Нет ответа от устройства.{c.END}')
         sys.exit()
     return wrapper_repeat
 
 
 class ExchangeProtocol(UartSerialPort):
-    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1, mode=0):
+    __slots__ = ('port_name', 'port_timeout', 'password', 'identifier', 'access', 'mode', 'file', '__password',
+                 '__id', '_access', 'buffer', 'param', 'hex_out', 'phone', 'call_flag', 'CALL', 'COMMAND')
+
+    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1, mode=0, phone='', file=''):
         super().__init__(port_name, port_timeout)
         self.__password = ' '.join((format(int(i), '02X')) for i in password)
         self.__id = format(identifier, '02X')
@@ -33,6 +36,15 @@ class ExchangeProtocol(UartSerialPort):
         self.param = ''
         self.hex_out = []
         self.mode = mode
+        self.phone = phone
+        self.call_flag = False
+        self.file = file
+
+        self.CALL = {
+            'AT': 'AT\r',
+            'CBST': 'AT+CBST=71,0,1\r',
+            'CALL': f'ATD{self.phone}\r'
+        }
 
         self.COMMAND = {'TEST': [self.id, '00'],
                         'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
@@ -42,7 +54,8 @@ class ExchangeProtocol(UartSerialPort):
                         'GET_EXECUTION': [self.id, '08 01 00'],
                         'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
                         'GET_VECTORS': [self.id, '06 04', self.param],
-                        'GET_FIRMWARE': [self.id, '07 05', self.param]}
+                        'GET_FIRMWARE': [self.id, '07 05', self.param]
+                        }
 
     def clear(self):
         return self.hex_out.clear()
@@ -64,6 +77,22 @@ class ExchangeProtocol(UartSerialPort):
 
     @repeat
     def exchange(self, command_name, count, param=''):
+        if self.mode == 1:
+
+            print(self.CSD_send(self.CALL['AT']))
+            print(self.CSD_send(self.CALL['CBST']))
+            self.set_time(10)
+            for _ in range(3):
+                calling = self.CSD_send(self.CALL['CALL'])
+                print(calling)
+                if calling == 'Connect OK (9600)':
+                    self.call_flag = True
+                    break
+            if self.call_flag:
+                self.mode = 0
+            else:
+                sys.exit()
+
         tmp_buffer = ''
         self.clear()
         if param:
@@ -81,11 +110,11 @@ class ExchangeProtocol(UartSerialPort):
             break
         return False, get_hex_line, tmp_buffer
 
-    def update_firmware(self, file):
+    def update_firmware(self):
         hi_address = ''
         lo_address = ''
         arg_value = ''
-        with open(file) as f:
+        with open(self.file) as f:
             lines = f.readlines()
 
         for line in lines:
@@ -144,8 +173,8 @@ class ExchangeProtocol(UartSerialPort):
         self.hex_out.append(self.exchange('GET_DESCRIPTOR', 5)[2])
         return self.hex_out
 
-    def get_firmware(self, file):
-        return self.update_firmware(file)
+    # def get_firmware(self):
+    #     return self.update_firmware()
 
     def get_vectors(self):
         vectors = []

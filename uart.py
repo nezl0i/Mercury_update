@@ -4,6 +4,8 @@ from serial.serialutil import SerialException
 
 
 class UartSerialPort:
+    __slots__ = ('port_name', 'port_timeout', 'sp', 'data')
+
     def __init__(self, port_name, port_timeout):
         try:
             self.sp = serial.Serial(
@@ -18,6 +20,7 @@ class UartSerialPort:
             print('Port not opened or port no available.')
             self.sp = None
             sys.exit()
+        self.data = ''
 
     def __str__(self):
         return f'Port {self.sp.port} open' if self.sp else 'Port not opened or port no available'
@@ -33,3 +36,30 @@ class UartSerialPort:
             return self.sp.read(count)
         except AttributeError:
             return False
+
+#   =========== From CSD terminal settings ================
+
+    def CSD_send(self, string):
+        send_string = bytearray(string, encoding='ascii')
+        self.sp.write(send_string)
+        print(f'Send command: {send_string.decode()}')
+        self.data = self.CSD_read()
+        return self.data
+
+    def CSD_read(self):
+        self.data = self.sp.readall()
+        if 'OK' in self.data.decode():
+            return 'OK'
+        elif 'CONNECT' in self.data.decode():
+            return 'Connect OK (9600)'
+        elif 'BUSY' in self.data.decode():
+            return 'BUSY'
+        return 'ERROR'
+
+    def set_time(self, val):
+        self.sp.timeout = val
+        return
+
+    def clear(self):
+        self.sp.flushInput()
+        self.sp.flushOutput()

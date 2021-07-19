@@ -10,13 +10,14 @@ check_out = []
 def create_parser():
     argv_parser = argparse.ArgumentParser()
     argv_parser.add_argument('-p', '--port', default='/dev/ttyUSB0')  # СОМ порт
-    argv_parser.add_argument('-t', '--timeout', type=float, default=1)  # Время ожидания ответа
-    argv_parser.add_argument('-i', '--number', type=int, default=30)  # Идентификатор счетчика
-    argv_parser.add_argument('-s', '--sys_timeout', type=float, default=.2)  # Системный таймаут
+    argv_parser.add_argument('-t', '--timeout', type=float, default=.1)  # Время ожидания ответа
+    argv_parser.add_argument('-i', '--number', type=int, default=52)  # Идентификатор счетчика
+    argv_parser.add_argument('-s', '--sys_timeout', type=float, default=.1)  # Системный таймаут
     argv_parser.add_argument('-l', '--level', type=int, default=2)  # Уровень доступа (1-USER,2-ADMIN)
     argv_parser.add_argument('-pwd', '--password', type=str, default='222222')  # Пароль пользователя
-    argv_parser.add_argument('-f', '--file', default='')
-    argv_parser.add_argument('-m', '--mode', default=0)
+    argv_parser.add_argument('-f', '--file', default='update/firmware.txt')    # Файл прошивки
+    argv_parser.add_argument('-m', '--mode', default=1)     # Режим: 0-"RS-485", 1-"CSD", 2-"TCP/IP"
+    argv_parser.add_argument('-ph', '--phone', default='+79898503741')      # Номер для CSD соединения
     return argv_parser
 
 
@@ -30,6 +31,7 @@ port_sys_timeout = parser.sys_timeout
 port_timeout = parser.timeout
 file = parser.file
 mode = parser.mode
+phone = parser.phone
 
 protocol = ExchangeProtocol(
     port,
@@ -37,13 +39,10 @@ protocol = ExchangeProtocol(
     identifier=target_id,
     password=target_password,
     access=target_access,
-    mode=mode
+    mode=mode,
+    phone=phone,
+    file=file
 )
-
-
-# print(parser)
-# print(uart.id)
-# print(uart.passwd)
 
 
 def get_out(tmp):
@@ -134,9 +133,7 @@ if __name__ == "__main__":
     #           Обновление ПО
     # =============================================
 
-    # file_update = 'update/firmware.txt'
-    #
-    # for el in protocol.update_firmware(file=file_update):
+    # for el in protocol.update_firmware():
     #     check_out = el.split(' ')
     # if check_out[1] == '00':
     #     print(f'{c.GREEN}Обновление выполнено успешно!{c.END}')
