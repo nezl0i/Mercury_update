@@ -64,7 +64,8 @@ class ExchangeProtocol(UartSerialPort):
                         'GET_EXECUTION': [self.id, '08 01 00'],
                         'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
                         'GET_VECTORS': [self.id, '06 04', self.param],
-                        'GET_FIRMWARE': [self.id, '07 05', self.param]
+                        'GET_FIRMWARE': [self.id, '07 05', self.param],
+                        'GET_PASSWD': [self.id, '06 02', self.param]
                         }
 
     def clear(self):
@@ -180,6 +181,8 @@ class ExchangeProtocol(UartSerialPort):
         self.clear()
         return
 
+
+
     def open_session(self):
         self.hex_out.append(self.exchange('OPEN_SESSION', 4)[2])
         for el in self.hex_out:
@@ -212,7 +215,8 @@ class ExchangeProtocol(UartSerialPort):
         tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), self.var))
         serial_result = ''.join(tmp_check_out[1:5])
         work_data = '.'.join(tmp_check_out[5:8])
-        print(f'{c.GREEN}Серийный номер - {serial_result}\nДата выпуска - {work_data}{c.END}\n')
+        print(f'{c.GREEN}Серийный номер - {serial_result}\n'
+              f'Дата выпуска - {work_data}{c.END}\n')
         self.clear()
         return
 
@@ -249,7 +253,7 @@ class ExchangeProtocol(UartSerialPort):
               f'Номинальный ток : {Execute.byte_14(byte_1[6:])}\n'
               f'Число направлений : {Execute.byte_21(byte_2[0])}\n'
               f'Температурный диапазон : {Execute.byte_22(byte_2[1])}\n'
-              f'Учет профиля средних мощностей : {Execute.byte_23(byte_2[2])}\n'
+              f'Учет профиля средних мощностей : {Execute.byte_47(byte_2[2])}\n'
               f'Число фаз : {Execute.byte_24(byte_2[3])}\n'
               f'Постоянная счетчика : {Execute.byte_25(byte_2[4:])}\n'
               f'Суммирование фаз : {Execute.byte_31(byte_3[0])}\n'
@@ -257,11 +261,11 @@ class ExchangeProtocol(UartSerialPort):
               f'Тип счетчика : {Execute.byte_33(byte_3[2:4])}\n'
               f'Номер варианта исполнения : {Execute.byte_34(byte_3[4:])}\n'
               f'Память №3 : {Execute.byte_41(byte_4[0])}\n'
-              f'Модем PLC : {Execute.byte_42(byte_4[1])}\n'
-              f'Модем GSM : {Execute.byte_43(byte_4[2])}\n'
-              f'Оптопорт : {Execute.byte_44(byte_4[3])}\n'
+              f'Модем PLC : {Execute.byte_47(byte_4[1])}\n'
+              f'Модем GSM : {Execute.byte_47(byte_4[2])}\n'
+              f'Оптопорт : {Execute.byte_47(byte_4[3])}\n'
               f'Интерфейс 1: {Execute.byte_45(byte_4[4:6])}\n'
-              f'Внешнее питание : {Execute.byte_46(byte_4[6])}\n'
+              f'Внешнее питание : {Execute.byte_47(byte_4[6])}\n'
               f'Эл.пломба верхней крышки : {Execute.byte_47(byte_4[7])}\n'
               f'Флаг наличия встроенного реле : {Execute.byte_47(byte_5[0])}\n'
               f'Флаг наличия подсветки ЖКИ : {Execute.byte_47(byte_5[1])}\n'
@@ -294,8 +298,8 @@ class ExchangeProtocol(UartSerialPort):
         for el in self.hex_out:
             self.var = el.split(' ')
         desc = f'{self.var[2]}{self.var[1]}'
-        print(f'{c.GREEN}Дескриптор ПУ - {desc}{c.END}')
-        print(f'{c.GREEN}Микроконтроллер - {self.hardware[desc]}{c.END}\n')
+        print(f'{c.GREEN}Дескриптор ПУ - {desc}\n'
+              f'Микроконтроллер - {self.hardware[desc]}{c.END}\n')
         self.clear()
         return
 
@@ -306,6 +310,23 @@ class ExchangeProtocol(UartSerialPort):
         print(f'{c.GREEN}Вектора прерываний:{c.END}')
         for el in self.hex_out:
             print(f'{c.GREEN}{el[3:50]}{c.END}')
+        print('\n')
+        self.clear()
+        return
+
+    def get_password(self):
+        param = ['00 4F 06', '00 48 06']
+        for i in range(len(param)):
+            self.hex_out.append(self.exchange('GET_PASSWD', 9, param=param[i])[2])
+        for i, el in enumerate(self.hex_out, 1):
+            self.var = el.split(' ')
+            tmp_passwd = list(map(lambda x: str(int(x, 16)), self.var))
+            passwd = ''.join(tmp_passwd[1:7])
+            if len(passwd) == 6:
+                print(f'{c.GREEN}Пароль {i} уровня- {passwd} (HEX){c.END}')
+            else:
+                print(f"{c.GREEN}Пароль {i} уровня- {''.join(self.var[1:7])} (ASCII){c.END}")
+            self.var.clear()
         print('\n')
         self.clear()
         return

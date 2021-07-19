@@ -50,13 +50,6 @@ class Execute:
         }[True]
 
     @staticmethod
-    def byte_23(tmp):
-        return {
-            tmp == "0": "Нет",
-            tmp == "1": "Есть"
-        }[True]
-
-    @staticmethod
     def byte_24(tmp):
         return {
             tmp == "0": "3",
@@ -114,40 +107,12 @@ class Execute:
         }[True]
 
     @staticmethod
-    def byte_42(tmp):
-        return {
-            tmp == "0": "Нет",
-            tmp == "1": "Есть"
-        }[True]
-
-    @staticmethod
-    def byte_43(tmp):
-        return {
-            tmp == "0": "Нет",
-            tmp == "1": "Есть"
-        }[True]
-
-    @staticmethod
-    def byte_44(tmp):
-        return {
-            tmp == "0": "Нет",
-            tmp == "1": "Есть"
-        }[True]
-
-    @staticmethod
     def byte_45(tmp):
         return {
             tmp == "00": "CAN",
             tmp == "01": "RS-485",
             tmp == "10": "Резерв",
             tmp == "11": "Нет",
-        }[True]
-
-    @staticmethod
-    def byte_46(tmp):
-        return {
-            tmp == "0": "Нет",
-            tmp == "1": "Есть"
         }[True]
 
     @staticmethod
