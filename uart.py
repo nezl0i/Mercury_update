@@ -51,10 +51,10 @@ class UartSerialPort:
         if 'OK' in self.data.decode():
             return 'OK'
         elif 'CONNECT' in self.data.decode():
-            return 'Connect OK (9600)'
+            return 'Connect OK (9600)\n'
         elif 'BUSY' in self.data.decode():
-            return 'BUSY'
-        return 'ERROR'
+            return 'BUSY\n'
+        return 'ERROR\n'
 
     def set_time(self, val):
         self.sp.timeout = val
