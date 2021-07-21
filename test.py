@@ -58,4 +58,4 @@ if __name__ == "__main__":
     # protocol.get_password()  # Чтение паролей
     # protocol.close_session()  # Закрытие канала связи
     # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
-    protocol.get_event(number=None, position=None)
+    protocol.get_event(number=None, position=None)  # Чтение журналов событий

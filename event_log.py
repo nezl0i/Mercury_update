@@ -197,24 +197,5 @@ def position_12(tmp):
     }[True]
 
 
-# function = [position_5, position_6, position_7, position_8, position_9, position_10, position_11]
-# byte_array = []
-# string = '42 01 08 18 05 41 10 00 00 00 00 02 00'
-# array = string.split(' ')
-# data = '.'.join(array[1:4])
-# count = int(array[4])
-# print('='*50)
-# print(f'Дата {data} (Количество операций - {count})')
-# print('='*50)
-# for i in range(5, 12):
-#     byte_array.append(format(int(array[i], 16), "08b"))
-# for i in range(7):
-#     func = function[i]
-#     for j, val in enumerate(reversed(byte_array[i])):
-#         if val == '1':
-#             result = code(func(j))
-#             print(result)
-# print('='*50)
-
 
 
