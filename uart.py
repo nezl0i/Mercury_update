@@ -1,6 +1,7 @@
 import sys
 import serial
 from serial.serialutil import SerialException
+import serial.tools.list_ports
 
 
 class UartSerialPort:
@@ -36,6 +37,12 @@ class UartSerialPort:
             return self.sp.read(count)
         except AttributeError:
             return False
+
+    @staticmethod
+    def list_port():
+        ports = [port for port in serial.tools.list_ports.comports()]
+        for port in ports:
+            print(f'{port}\n')
 
 #   =========== From CSD terminal settings ================
 

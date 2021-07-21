@@ -12,7 +12,7 @@ def create_parser():
     argv_parser.add_argument('-p', '--port', default='/dev/ttyUSB0')  # СОМ порт
     argv_parser.add_argument('-t', '--timeout', type=float, default=5)  # Время ожидания ответа
     argv_parser.add_argument('-i', '--number', type=int, default=39)  # Идентификатор счетчика
-    argv_parser.add_argument('-s', '--sys_timeout', type=float, default=.5)  # Системный таймаут
+    argv_parser.add_argument('-s', '--sys_timeout', type=float, default=.1)  # Системный таймаут
     argv_parser.add_argument('-l', '--level', type=int, default=2)  # Уровень доступа (1-USER,2-ADMIN)
     argv_parser.add_argument('-pwd', '--password', type=str, default='252696')  # Пароль пользователя
     argv_parser.add_argument('-f', '--file', default='update/firmware.txt')  # Файл прошивки
@@ -44,37 +44,18 @@ protocol = ExchangeProtocol(
     file=file
 )
 
-
 if __name__ == "__main__":
 
-    #  Тест канала связи
-    protocol.test_channel()
-
-    #   Открытие канала связи
-    protocol.open_session()
-
-    #   Закрытие канала связи
-    # protocol.close_session()
-
-    #   Чтение ID прибора учета
-    # protocol.read_identifier()
-
-    #   Чтение серийного номера ПУ
-    protocol.read_serial()
-
-    #   Вариант исполнения
-    protocol.execution()
-
-    #  Дескриптор
-    # protocol.descriptor()
-
-    #   Вектора прерываний
-    # protocol.get_vectors()
-
-    # =============================================
-    #           Обновление ПО
-    # =============================================
-    # protocol.update_firmware()
-
-    #   Чтение паролей
-    protocol.get_password()
+    protocol.list_port()  # Список доступных портов
+    protocol.test_channel()  # Тест канала связи
+    protocol.open_session()  # Открытие канала связи
+    # protocol.read_identifier()  # Чтение ID прибора учета
+    # protocol.read_serial()  # Чтение серийного номера ПУ
+    # protocol.execution()  # Вариант исполнения
+    # protocol.descriptor()  # Дескриптор
+    # protocol.get_vectors()  # Вектора прерываний
+    # protocol.update_firmware()  # Обновление ПО
+    # protocol.get_password()  # Чтение паролей
+    # protocol.close_session()  # Закрытие канала связи
+    # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
+    protocol.get_event(number=None, position=None)
