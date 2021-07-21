@@ -88,14 +88,14 @@ class ExchangeProtocol(UartSerialPort):
     def print_event(self, arg):
         for el in arg:
             self.var = el.split(' ')
-            print(f'{c.GREEN}{":".join(reversed(self.var[1:4]))} ({".".join(self.var[4:7])})  |  '
-                  f'{":".join(reversed(self.var[7:10]))} ({".".join(self.var[10:13])}){c.END}')
+            print(f'{c.GREEN}{".".join(self.var[4:7])} ({":".join(reversed(self.var[1:4]))})  |  '
+                  f'{".".join(self.var[10:13])} ({":".join(reversed(self.var[7:10]))}){c.END}')
         print('\n')
 
     def print_event_2(self, arg):
         for el in arg:
             self.var = el.split(' ')
-            print(f'{c.GREEN}{":".join(reversed(self.var[1:4]))} ({".".join(self.var[4:7])}){c.END}')
+            print(f'{c.GREEN}{".".join(self.var[4:7])} ({":".join(reversed(self.var[1:4]))}){c.END}')
         print('\n')
 
     def clear(self):
@@ -513,9 +513,32 @@ class ExchangeProtocol(UartSerialPort):
                                 print(f'{c.GREEN}{result}{c.END}')
                 print('\n')
             elif key == '14':
-                print(f'{c.BLUE}    [ Время ]               [ Код ]')
+                function = [event_log.word_1, event_log.word_2, event_log.word_3,
+                            event_log.word_4, event_log.word_5, event_log.word_6]
                 for el in val:
-                    self.var = el.split(' ')
-                    print(f'{c.GREEN}{":".join(reversed(self.var[1:4]))} ({".".join(self.var[4:7])})  |  '
-                          f'{" ".join(self.var[7:13])}{c.END}')
+                    byte_array = []
+                    string = el.split(' ')
+                    time = ':'.join(reversed(string[1:4]))
+                    data = '.'.join(string[4:7])
+                    print(f'{c.BLUE}-{c.END}' * 50)
+                    print(f'{c.BLUE}Дата {data} ({time}){c.END}')
+                    for i in range(7, 13):
+                        byte_array.append(format(int(string[i], 16), "08b"))
+
+                    byte_array[0], byte_array[4] = byte_array[4], byte_array[0]
+                    byte_array[2], byte_array[3] = byte_array[3], byte_array[2]
+                    byte_array[1], byte_array[5] = byte_array[5], byte_array[1]
+
+                    for i in range(6):
+                        func = function[i]
+                        for j, k in enumerate(reversed(byte_array[i])):
+                            if k == '1':
+                                result = func(j)
+                                print(f'{c.GREEN}{result}{c.END}')
                 print('\n')
+                # print(f'{c.BLUE}    [ Время ]               [ Код ]')
+                # for el in val:
+                #     self.var = el.split(' ')
+                #     print(f'{c.GREEN}{":".join(reversed(self.var[1:4]))} ({".".join(self.var[4:7])})  |  '
+                #           f'{" ".join(self.var[7:13])}{c.END}')
+                # print('\n')
