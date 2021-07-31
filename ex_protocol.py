@@ -68,12 +68,9 @@ class ExchangeProtocol(UartSerialPort):
         self.phone = phone
         self.file = file
 
-        self.buffer = ''
         self.param = ''
-        self.hex_out = []
         self.call_flag = False
         self.device = ''
-        self.tmp_event = []
 
         self.CALL = {'AT': 'AT\r',
                      'CBST': 'AT+CBST=71,0,1\r',
@@ -101,9 +98,6 @@ class ExchangeProtocol(UartSerialPort):
                         'SET_SPODES': [self.id, '03 12', self.param],
                         'GET_EVENT': [self.id, '04', self.param]
                         }
-
-    def clear(self):
-        return self.hex_out.clear()
 
     def set_id(self, var):
         self.__id = var
@@ -147,21 +141,19 @@ class ExchangeProtocol(UartSerialPort):
             else:
                 sys.exit()
 
-        tmp_buffer = ''
         if param:
             self.COMMAND[command_name].pop()
             self.COMMAND[command_name].append(param)
         data = ' '.join(list(map(lambda var: var, self.COMMAND[command_name])))
         transfer = bytearray.fromhex(data + ' ' + crc16(bytearray.fromhex(data)))
-        get_hex_line = ' '.join(format(x, '02x') for x in transfer)
+        print_line = ' '.join(format(x, '02x') for x in transfer)
         self.write(transfer)
-        self.buffer = self.read(count)
-        while self.buffer:
-            if len(self.buffer) == count:
-                tmp_buffer = self.buffer.hex(' ', -1)
-                return True, get_hex_line, tmp_buffer
+        buffer = self.read(count)
+        while buffer:
+            if len(buffer) == count:
+                return True, print_line, buffer.hex(' ', -1)
             break
-        return False, get_hex_line, tmp_buffer
+        return False, print_line, buffer.hex(' ', -1)
 
     def update_firmware(self):
         hi_address = ''
@@ -174,29 +166,25 @@ class ExchangeProtocol(UartSerialPort):
             if line.startswith('@'):
                 arg_value = '02'
                 hex_line = line[1:].rstrip()
-                if len(hex_line) < 5:
-                    hi_address = f'0{hex_line[:1]}'
-                    lo_address = f'{hex_line[1:]}0' if len(hex_line[1:]) == 1 else f'{hex_line[1:]}'
+
+                if hex_line[0].isdigit():
+                    hi_address = format(int(hex_line[:2], 16), "02X")
+                    lo_address = format(int(hex_line[2:4], 16), "02X")
                 else:
-                    hi_address = f'{hex_line[:2]}'
-                    lo_address = f'{hex_line[2:4]}'
+                    hi_address = format(int(hex_line[0], 16), "02X")
+                    lo_address = format(int(hex_line[1:3], 16), "02X")
 
             elif line.startswith('q'):
                 send_command = f'12 0F 3C 0F FC 10'
-                # a = self.exchange('GET_FIRMWARE', 4, param=send_command)
                 out = self.exchange('GET_FIRMWARE', 4, param=send_command)[2].split(' ')
-                # for el in self.hex_out:
-                #     self.var = el.split(' ')
                 if out[1] == '00':
                     print(f'{c.GREEN}Обновление выполнено успешно!{c.END}')
                 else:
                     print(f'{c.FAIL}Не удалось выполнить обновление...{c.END}')
-                # self.clear()
                 return
             else:
                 send_command = f'{arg_value} {hi_address} {lo_address} {line.rstrip()}'
                 self.exchange('GET_FIRMWARE', 4, param=send_command)
-                # self.hex_out.append(a[2])
                 if lo_address == 'FF':
                     hi_address = format(int(hi_address, 16) + 1, "02X")
                     lo_address = '00'
@@ -332,6 +320,8 @@ class ExchangeProtocol(UartSerialPort):
         param = None
         pos = None
         tmp_key = []
+        tmp_out = []
+        tmp_event = []
         flag = 1
 
         if number is not None and position is None:
@@ -362,36 +352,36 @@ class ExchangeProtocol(UartSerialPort):
 
         for i in range(len(list_all)):
             key = list_all[i]
-            self.clear()
+            tmp_out.clear()
             count = 9 if list_all[i] in list_0 else 15
 
             if flag == 1:
                 print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
                 for j in range(10):
                     index = format(j, '02X')
-                    self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{key} {index}')[2])
+                    tmp_out.append(self.exchange('GET_EVENT', count, param=f'{key} {index}')[2])
             elif flag == 2:
                 print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
-                self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{key} {pos}')[2])
+                tmp_out.append(self.exchange('GET_EVENT', count, param=f'{key} {pos}')[2])
             elif flag == 3:
                 print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
                 count = 9 if param in list_0 else 15
                 for j in range(10):
                     index = format(j, '02X')
-                    self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{param} {index}')[2])
-                self.tmp_event.append(self.hex_out[:])
+                    tmp_out.append(self.exchange('GET_EVENT', count, param=f'{param} {index}')[2])
+                tmp_event.append(tmp_out[:])
                 tmp_key.append(param)
                 break
             elif flag == 4:
                 print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
                 count = 9 if param in list_0 else 15
-                self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{param} {pos}')[2])
-                self.tmp_event.append(self.hex_out[:])
+                tmp_out.append(self.exchange('GET_EVENT', count, param=f'{param} {pos}')[2])
+                tmp_event.append(tmp_out[:])
                 tmp_key.append(key)
                 break
-            self.tmp_event.append(self.hex_out[:])
+            tmp_event.append(tmp_out[:])
             tmp_key.append(key)
-        event_dict = dict(zip(tmp_key, self.tmp_event))
+        event_dict = dict(zip(tmp_key, tmp_event))
         return log.print_log(event_dict)
 
     def set_passwd(self, pwd, md):

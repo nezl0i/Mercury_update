@@ -379,4 +379,4 @@ def print_log(arg: dict):
                         if k == '1':
                             result = func(j)
                             print(f'{c.GREEN}{result}{c.END}')
-            # print('\n')
+            print('\n')
