@@ -8,3 +8,18 @@ class Colors:
     END = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    ONE = ''
+
+
+class WinColors:
+    HEADER = ''
+    BLUE = ''
+    CYAN = ''
+    GREEN = ''
+    WARNING = ''
+    FAIL = ''
+    END = ''
+    BOLD = ''
+    UNDERLINE = ''
+    ONE = ''
+

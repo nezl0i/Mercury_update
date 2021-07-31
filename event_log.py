@@ -1,3 +1,13 @@
+from sys import platform
+
+if platform.startswith('win'):
+    from colors import WinColors
+    c = WinColors()
+else:
+    from colors import Colors
+    c = Colors()
+
+
 def event(tmp):
     return {
         tmp == "00": "Чтение текущего времени",  # 8 + 3
@@ -275,5 +285,98 @@ def word_6(tmp):
     }[True]
 
 
+def print_event(arg):
+    for el in arg:
+        var = el.split(' ')
+        print(f'{c.GREEN}{".".join(var[4:7])} ({":".join(reversed(var[1:4]))})  |  '
+              f'{".".join(var[10:13])} ({":".join(reversed(var[7:10]))}){c.END}')
+    print('\n')
 
 
+def print_event_2(arg):
+    for el in arg:
+        var = el.split(' ')
+        print(f'{c.GREEN}{".".join(var[4:7])} ({":".join(reversed(var[1:4]))}){c.END}')
+    print('\n')
+
+
+def print_log(arg: dict):
+    list_1 = ['01', '03', '04', '05', '17', '18', '19']
+    list_2 = ['07', '08', '0F', '10', '11', '15']
+    list_3 = ['0B', '0C', '0D', '0E']
+    list_4 = ['09', '16']
+    print('=' * 50)
+    for key, val in arg.items():
+        print(f'{c.WARNING}[ {event(key)} ]{c.END}')
+        if key in list_1:
+            print(f'{c.BLUE}   [ Включение ]          [ Отключение ]')
+            print_event(val)
+        elif key in list_2:
+            print(f'{c.BLUE}[ Время коррекции ]')
+            print_event_2(val)
+        elif key in list_3:
+            print(f'{c.BLUE}[ Время превышения ]')
+            print_event_2(val)
+        elif key == '02':
+            print(f'{c.BLUE} [ До коррекции ]      [ После коррекции ]')
+            print_event(val)
+        elif key == '06':
+            print(f'{c.BLUE}[Начало превышения]   [Окончание превышения]')
+            print_event(val)
+        elif key in list_4:
+            print(f'{c.BLUE}[ Время сброса ]')
+            print_event_2(val)
+        elif key == '0A':
+            print(f'{c.BLUE}[ Время инициализации ]')
+            print_event_2(val)
+        elif key == '1A':
+            print(f'{c.BLUE}[Начало воздействия]   [Окончание воздействия]')
+            print_event(val)
+        elif key == '12':
+            print(f'{c.BLUE}  [Время вскрытия]        [Время закрытия]')
+            print_event(val)
+        elif key == '13':
+            function = [position_5, position_6, position_7,
+                        position_8, position_9, position_10,
+                        position_11, position_12]
+            for el in val:
+                byte_array = []
+                string = el.split(' ')
+                data = '.'.join(string[1:4])
+                count = int(string[4])
+                print(f'{c.BLUE}-{c.END}' * 50)
+                print(f'{c.BLUE}Дата {data} (Количество операций - {count}){c.END}')
+
+                for i in range(5, 13):
+                    byte_array.append(format(int(string[i], 16), "08b"))
+                for i in range(8):
+                    func = function[i]
+                    for j, k in enumerate(reversed(byte_array[i])):
+                        if k == '1':
+                            result = code(func(j))
+                            print(f'{c.GREEN}{result}{c.END}')
+            print('\n')
+        elif key == '14':
+            function = [word_1, word_2, word_3,
+                        word_4, word_5, word_6]
+            for el in val:
+                byte_array = []
+                string = el.split(' ')
+                time = ':'.join(reversed(string[1:4]))
+                data = '.'.join(string[4:7])
+                print(f'{c.BLUE}-{c.END}' * 50)
+                print(f'{c.BLUE}Дата {data} ({time}){c.END}')
+                for i in range(7, 13):
+                    byte_array.append(format(int(string[i], 16), "08b"))
+
+                byte_array[0], byte_array[4] = byte_array[4], byte_array[0]
+                byte_array[2], byte_array[3] = byte_array[3], byte_array[2]
+                byte_array[1], byte_array[5] = byte_array[5], byte_array[1]
+
+                for i in range(6):
+                    func = function[i]
+                    for j, k in enumerate(reversed(byte_array[i])):
+                        if k == '1':
+                            result = func(j)
+                            print(f'{c.GREEN}{result}{c.END}')
+            # print('\n')

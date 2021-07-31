@@ -1,13 +1,20 @@
 import sys
+from sys import platform
 from datetime import datetime
 from time import sleep
-from colors import Colors
 from modbus_crc16 import crc16
 from uart import UartSerialPort
-from execute import Execute
-import event_log
+import execute
+import event_log as log
 
-c = Colors()
+if platform.startswith('win'):
+    from colors import WinColors
+
+    c = WinColors()
+else:
+    from colors import Colors
+
+    c = Colors()
 
 
 def repeat(func):
@@ -26,27 +33,47 @@ def repeat(func):
     return wrapper_repeat
 
 
+def get_out(tmp):
+    return {
+        tmp == "00": "OK",
+        tmp == "01": "Недопустимая команда или параметр",
+        tmp == "02": "Внутренняя ошибка счетчика",
+        tmp == "03": "Недостаточен уровень для удовлетворения запроса",
+        tmp == "04": "Внутренние часы счетчика уже корректировались в течение текущих суток",
+        tmp == "05": "Не открыт канал связи"
+    }[True]
+
+
 class ExchangeProtocol(UartSerialPort):
     __slots__ = ('port_name', 'port_timeout', 'password', 'identifier', 'access', 'mode', 'file', '__password',
-                 '__id', '_access', 'buffer', 'param', 'hex_out', 'phone', 'call_flag', 'CALL', 'COMMAND', 'var',
-                 'hardware', 'device', 'tmp_event')
+                 '__id', '_access', 'buffer', 'param', 'hex_out', 'phone', 'call_flag', 'CALL', 'COMMAND',
+                 'hardware', 'device', 'tmp_event', 'pass_mode')
 
-    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1, mode=0, phone='', file=''):
+    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1, mode=0, phone='', file='',
+                 pass_mode='hex'):
         super().__init__(port_name, port_timeout)
-        self.__password = ' '.join((format(int(i), '02X')) for i in password)
+        self.pass_mode = pass_mode
+
+        if self.pass_mode == 'hex':
+            self.__password = ' '.join((format(int(i), '02X')) for i in password)
+        elif self.pass_mode == 'ascii':
+            self.__password = ' '.join((format(ord(i), '02X')) for i in password)
+        else:
+            print('No pass_mode.')
+            sys.exit()
+
         self.__id = format(identifier, '02X')
         self._access = format(access, '02X')
+        self.mode = mode
+        self.phone = phone
+        self.file = file
+
         self.buffer = ''
         self.param = ''
         self.hex_out = []
-        self.var = []
-        self.mode = mode
-        self.phone = phone
         self.call_flag = False
-        self.file = file
         self.device = ''
         self.tmp_event = []
-        # self.event_dict = {}
 
         self.CALL = {'AT': 'AT\r',
                      'CBST': 'AT+CBST=71,0,1\r',
@@ -70,33 +97,10 @@ class ExchangeProtocol(UartSerialPort):
                         'GET_VECTORS': [self.id, '06 04', self.param],
                         'GET_FIRMWARE': [self.id, '07 05', self.param],
                         'GET_PASSWD': [self.id, '06 02', self.param],
+                        'SET_PASSWD': [self.id, '03 1F', self.param],
                         'SET_SPODES': [self.id, '03 12', self.param],
                         'GET_EVENT': [self.id, '04', self.param]
                         }
-
-    @staticmethod
-    def get_out(tmp):
-        return {
-            tmp == "00": "OK",
-            tmp == "01": "Недопустимая команда или параметр",
-            tmp == "02": "Внутренняя ошибка счетчика",
-            tmp == "03": "Недостаточен уровень для удовлетворения запроса",
-            tmp == "04": "Внутренние часы счетчика уже корректировались в течение текущих суток",
-            tmp == "05": "Не открыт канал связи"
-        }[True]
-
-    def print_event(self, arg):
-        for el in arg:
-            self.var = el.split(' ')
-            print(f'{c.GREEN}{".".join(self.var[4:7])} ({":".join(reversed(self.var[1:4]))})  |  '
-                  f'{".".join(self.var[10:13])} ({":".join(reversed(self.var[7:10]))}){c.END}')
-        print('\n')
-
-    def print_event_2(self, arg):
-        for el in arg:
-            self.var = el.split(' ')
-            print(f'{c.GREEN}{".".join(self.var[4:7])} ({":".join(reversed(self.var[1:4]))}){c.END}')
-        print('\n')
 
     def clear(self):
         return self.hex_out.clear()
@@ -121,6 +125,10 @@ class ExchangeProtocol(UartSerialPort):
             print(f'{c.WARNING}Введен неверный ID прибора учета.{c.END}')
             sys.exit()
         return self.__id
+
+    @property
+    def level(self):
+        return self._access
 
     @repeat
     def exchange(self, command_name, count, param=''):
@@ -176,19 +184,19 @@ class ExchangeProtocol(UartSerialPort):
             elif line.startswith('q'):
                 send_command = f'12 0F 3C 0F FC 10'
                 # a = self.exchange('GET_FIRMWARE', 4, param=send_command)
-                self.hex_out.append(self.exchange('GET_FIRMWARE', 4, param=send_command)[2])
-                for el in self.hex_out:
-                    self.var = el.split(' ')
-                if self.var[1] == '00':
+                out = self.exchange('GET_FIRMWARE', 4, param=send_command)[2].split(' ')
+                # for el in self.hex_out:
+                #     self.var = el.split(' ')
+                if out[1] == '00':
                     print(f'{c.GREEN}Обновление выполнено успешно!{c.END}')
                 else:
                     print(f'{c.FAIL}Не удалось выполнить обновление...{c.END}')
-                self.clear()
+                # self.clear()
                 return
             else:
                 send_command = f'{arg_value} {hi_address} {lo_address} {line.rstrip()}'
-                a = self.exchange('GET_FIRMWARE', 4, param=send_command)
-                self.hex_out.append(a[2])
+                self.exchange('GET_FIRMWARE', 4, param=send_command)
+                # self.hex_out.append(a[2])
                 if lo_address == 'FF':
                     hi_address = format(int(hi_address, 16) + 1, "02X")
                     lo_address = '00'
@@ -198,160 +206,92 @@ class ExchangeProtocol(UartSerialPort):
                     arg_value = '00'
 
     def test_channel(self):
-        self.hex_out.append(self.exchange('TEST', 4)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        print(f'{c.GREEN}Тест канала связи - {self.get_out(self.var[1])}{c.END}\n')
-        self.clear()
+        out = self.exchange('TEST', 4)[2].split(' ')
+        print(f'{c.GREEN}Тест канала связи - '
+              f'{get_out(out[1])}{c.END}\n')
         return
 
     def open_session(self):
-        self.hex_out.append(self.exchange('OPEN_SESSION', 4)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        print(f'{c.GREEN}Открытие канала связи - {self.get_out(self.var[1])}{c.END}\n')
-        self.clear()
+        out = self.exchange('OPEN_SESSION', 4)[2].split(' ')
+        print(f'{c.GREEN}Открытие канала связи - '
+              f'{get_out(out[1])}{c.END}\n')
         return
 
     def close_session(self):
-        self.hex_out.append(self.exchange('CLOSE_SESSION', 4)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        print(f'{c.GREEN}Закрытие канала связи - {self.get_out(self.var[1])}{c.END}\n')
-        self.clear()
+        out = self.exchange('CLOSE_SESSION', 4)[2].split(' ')
+        print(f'{c.GREEN}Закрытие канала связи - '
+              f'{get_out(out[1])}{c.END}\n')
         return
 
     def read_identifier(self):
-        self.hex_out.append(self.exchange('GET_IDENTIFIER', 5)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        id_result = int(self.var[2], 16)
+        out = self.exchange('GET_IDENTIFIER', 5)[2].split(' ')
+        id_result = int(out[2], 16)
         print(f'{c.GREEN}Идентификатор ПУ - {id_result}{c.END}\n')
-        self.clear()
         return
 
     def read_serial(self):
-        self.hex_out.append(self.exchange('GET_SERIAL', 10)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), self.var))
+        out = self.exchange('GET_SERIAL', 10)[2].split(' ')
+        tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), out))
         result = ''.join(tmp_check_out[1:5])
         self.set_device(result)
         work_data = '.'.join(tmp_check_out[5:8])
         print(f'{c.GREEN}Серийный номер - {self.device}\n'
               f'Дата выпуска - {work_data}{c.END}\n')
-        self.clear()
         return
 
     def execution(self):
-        self.hex_out.append(self.exchange('GET_EXECUTION', 27)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        tmp_serial = list(map(lambda x: str(int(x, 16)).zfill(2), self.var[1:5]))
-        tmp_data = list(map(lambda x: str(int(x, 16)).zfill(2), self.var[5:8]))
-        tmp_version = list(map(lambda x: str(int(x, 16)).zfill(2), self.var[8:11]))
-        tmp_revision = list(map(lambda x: str(int(x, 16)).zfill(2), self.var[19:21]))
+        var = self.exchange('GET_EXECUTION', 27)[2].split(' ')
+        tmp_serial = list(map(lambda x: str(int(x, 16)).zfill(2), var[1:5]))
+        tmp_data = list(map(lambda x: str(int(x, 16)).zfill(2), var[5:8]))
+        tmp_version = list(map(lambda x: str(int(x, 16)).zfill(2), var[8:11]))
+        tmp_revision = list(map(lambda x: str(int(x, 16)).zfill(2), var[19:21]))
         self.set_device(''.join(tmp_serial))
         data = '.'.join(tmp_data)
         version = '.'.join(tmp_version)
         revision = '.'.join(tmp_revision)
-        crc_po = f"{''.join(self.var[17:19]).upper()}"
+        crc_po = f"{''.join(var[17:19]).upper()}"
 
-        byte_1 = format(int(self.var[11], 16), "08b")
-        byte_2 = format(int(self.var[12], 16), "08b")
-        byte_3 = format(int(self.var[13], 16), "08b")
-        byte_4 = format(int(self.var[14], 16), "08b")
-        byte_5 = format(int(self.var[15], 16), "08b")
-        byte_6 = format(int(self.var[16], 16), "08b")
-        byte_7 = format(int(self.var[21], 16), "08b")
+        byte_1 = format(int(var[11], 16), "08b")
+        byte_2 = format(int(var[12], 16), "08b")
+        byte_3 = format(int(var[13], 16), "08b")
+        byte_4 = format(int(var[14], 16), "08b")
+        byte_5 = format(int(var[15], 16), "08b")
+        byte_6 = format(int(var[16], 16), "08b")
+        byte_7 = format(int(var[21], 16), "08b")
         # byte_8 = format(int(check_out[22], 16), "08b")
-        print(f'{c.GREEN}Серийный номер - {self.device}\n'
-              f'Дата выпуска - {data}\n'
-              f'Версия ПО - {version}\n'
-              f'Ревизия ПО - {revision}\n'
-              f'CRC ПО - {crc_po}\n'
-              f'Класс точности А+ : {Execute.byte_11(byte_1[:2])}\n'
-              f'Класс точности R+ : {Execute.byte_12(byte_1[2:4])}\n'
-              f'Номинальное напряжение : {Execute.byte_13(byte_1[4:6])}\n'
-              f'Номинальный ток : {Execute.byte_14(byte_1[6:])}\n'
-              f'Число направлений : {Execute.byte_21(byte_2[0])}\n'
-              f'Температурный диапазон : {Execute.byte_22(byte_2[1])}\n'
-              f'Учет профиля средних мощностей : {Execute.byte_47(byte_2[2])}\n'
-              f'Число фаз : {Execute.byte_24(byte_2[3])}\n'
-              f'Постоянная счетчика : {Execute.byte_25(byte_2[4:])}\n'
-              f'Суммирование фаз : {Execute.byte_31(byte_3[0])}\n'
-              f'Тарификатор : {Execute.byte_32(byte_3[1])}\n'
-              f'Тип счетчика : {Execute.byte_33(byte_3[2:4])}\n'
-              f'Номер варианта исполнения : {Execute.byte_34(byte_3[4:])}\n'
-              f'Память №3 : {Execute.byte_41(byte_4[0])}\n'
-              f'Модем PLC : {Execute.byte_47(byte_4[1])}\n'
-              f'Модем GSM : {Execute.byte_47(byte_4[2])}\n'
-              f'Оптопорт : {Execute.byte_47(byte_4[3])}\n'
-              f'Интерфейс 1: {Execute.byte_45(byte_4[4:6])}\n'
-              f'Внешнее питание : {Execute.byte_47(byte_4[6])}\n'
-              f'Эл.пломба верхней крышки : {Execute.byte_47(byte_4[7])}\n'
-              f'Флаг наличия встроенного реле : {Execute.byte_47(byte_5[0])}\n'
-              f'Флаг наличия подсветки ЖКИ : {Execute.byte_47(byte_5[1])}\n'
-              f'Флаг потарифного учета максимумов мощности : {Execute.byte_47(byte_5[2])}\n'
-              f'Флаг наличия эл.пломбы защитной крышки : {Execute.byte_47(byte_5[3])}\n'
-              f'Интерфейс 2 : {Execute.byte_47(byte_5[4])}\n'
-              f'Встроенное питание интерфейса 1 : {Execute.byte_47(byte_5[5])}\n'
-              f'Контроль ПКЭ : {Execute.byte_47(byte_5[6])}\n'
-              f'Пофазный учет энергии А+ : {Execute.byte_47(byte_5[7])}\n'
-              f'Флаг измерения тока в нуле : {Execute.byte_47(byte_6[0])}\n'
-              f'Флаг расширенного перечня массивов : {Execute.byte_47(byte_6[1])}\n'
-              f'Флаг протокола IEC 61107 : {Execute.byte_47(byte_6[2])}\n'
-              f'Модем PLC2 : {Execute.byte_47(byte_6[3])}\n'
-              f'Флаг наличия профиля 2 : {Execute.byte_47(byte_6[4])}\n'
-              f'Флаг наличия пломбы модульного отсека : {Execute.byte_47(byte_6[5])}\n'
-              f'Флаг переключения тарифов внешним напряжением : {Execute.byte_47(byte_6[6])}\n'
-              f'Реле управ-ния внешн.устр-ми откл. нагрузки : {Execute.byte_47(byte_6[7])}\n'
-              f'Постоянная имп. и оптических выходов : {Execute.byte_71(byte_7[0:4])}\n'
-              f'Флаг измерения провалов и перенапряжений : {Execute.byte_47(byte_7[4])}\n'
-              f'Флаг тарифного учета R1-R4 : {Execute.byte_47(byte_7[5])}\n'
-              f'Флаг КПК : {Execute.byte_47(byte_7[6])}\n'
-              f'Флаг массива профилей : {Execute.byte_47(byte_7[7])}{c.END}\n'
 
-              )
-        self.clear()
-        return
+        return execute.print_exec(self.device, data, version, revision, crc_po, byte_1, byte_2,
+                                  byte_3, byte_4, byte_5, byte_6, byte_7)
 
     def descriptor(self):
-        self.hex_out.append(self.exchange('GET_DESCRIPTOR', 5)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
-        desc = f'{self.var[2]}{self.var[1]}'
+        out = self.exchange('GET_DESCRIPTOR', 5)[2].split(' ')
+        desc = f'{out[2]}{out[1]}'
         print(f'{c.GREEN}Дескриптор ПУ - {desc}\n'
               f'Микроконтроллер - {self.hardware[desc]}{c.END}\n')
-        self.clear()
         return
 
     def get_vectors(self):
+        var = []
         param = ['F1 C0 10', 'F1 D0 10', 'F1 E0 10', 'F1 F0 10']
         for i in range(len(param)):
-            self.hex_out.append(self.exchange('GET_VECTORS', 19, param=param[i])[2])
-        print(f'{c.GREEN}Вектора прерываний:{c.END}')
-        for el in self.hex_out:
-            print(f'{c.GREEN}{el[3:50]}{c.END}')
-        print('\n')
-        self.clear()
+            var.append(' '.join(self.exchange('GET_VECTORS', 19, param=param[i])[2].split(' ')[1:16]))
+        print(f'{c.GREEN}Вектора прерываний:')
+        print(*var, c.END, sep='\n')
         return
 
     def get_password(self):
+        var = []
         param = ['00 4F 06', '00 48 06']
         for i in range(len(param)):
-            self.hex_out.append(self.exchange('GET_PASSWD', 9, param=param[i])[2])
-        for i, el in enumerate(self.hex_out, 1):
-            self.var = el.split(' ')
-            tmp_passwd = list(map(lambda x: str(int(x, 16)), self.var))
-            passwd = ''.join(tmp_passwd[1:7])
+            var.append(self.exchange('GET_PASSWD', 9, param=param[i])[2].split(' ')[1:7])
+        for i, el in enumerate(var, 1):
+            passwd = ''.join(map(lambda x: str(int(x, 16)), el))
             if len(passwd) == 6:
                 print(f'{c.GREEN}Пароль {i} уровня- {passwd} (HEX){c.END}')
             else:
-                print(f"{c.GREEN}Пароль {i} уровня- {''.join(self.var[1:7])} (ASCII){c.END}")
-            self.var.clear()
+                passwd = ''.join(map(lambda x: bytearray.fromhex(x).decode(), el))
+                print(f"{c.GREEN}Пароль {i} уровня- {''.join(passwd)} (ASCII){c.END}")
         print('\n')
-        self.clear()
         return
 
     def set_spodes(self, channel, value, byte_timeout, active_time):
@@ -371,15 +311,12 @@ class ExchangeProtocol(UartSerialPort):
         act_time = format(active_time, '02X')
 
         param = f'{ch} {val} 00 {hi_byte_timeout} {lo_byte_timeout} {act_time}'
-        self.hex_out.append(self.exchange('SET_SPODES', 4, param=param)[2])
-        for el in self.hex_out:
-            self.var = el.split(' ')
+        out = self.exchange('SET_SPODES', 4, param=param)[2].split(' ')
         print(f'{c.GREEN}Интерфейс - "{interface[channel]}"\n'
               f'Протокол - "{default_protocol[value]}"\n'
               f'Межсимвольный таймаут - {byte_timeout}\n'
               f'Тайиаут неактивности - {active_time}\n'
-              f'Выполнение - {self.get_out(self.var[1])}{c.END}\n')
-        self.clear()
+              f'Выполнение - {get_out(out[1])}{c.END}\n')
         return
 
     def get_event(self, number=None, position=None):
@@ -388,14 +325,10 @@ class ExchangeProtocol(UartSerialPort):
         :param position: Номер записи (1-10), None - читать все записи
         :return: Результат
         """
-        list_event_6 = ['07', '08', '09', '0A', '0B', '0C', '0D', '0E', '0F', '10', '11', '15', '16']
-        list_all = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '0A',
-                    '0B', '0C', '0D', '0E', '0F', '10', '11', '12', '13', '14',
-                    '15', '16', '17', '18', '19', '1A']
-        list_1 = ['01', '03', '04', '05', '17', '18', '19']
-        list_2 = ['07', '08', '0F', '10', '11', '15']
-        list_3 = ['0B', '0C', '0D', '0E']
-        list_4 = ['09', '16']
+
+        list_all = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '0A', '0B', '0C', '0D',
+                    '0E', '0F', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1A']
+        list_0 = ['07', '08', '09', '0A', '0B', '0C', '0D', '0E', '0F', '10', '11', '15', '16']
         param = None
         pos = None
         tmp_key = []
@@ -430,19 +363,19 @@ class ExchangeProtocol(UartSerialPort):
         for i in range(len(list_all)):
             key = list_all[i]
             self.clear()
-            count = 9 if list_all[i] in list_event_6 else 15
+            count = 9 if list_all[i] in list_0 else 15
 
             if flag == 1:
-                print(f'{c.GREEN}[ {event_log.event(key)} ]{c.END}')
+                print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
                 for j in range(10):
                     index = format(j, '02X')
                     self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{key} {index}')[2])
             elif flag == 2:
-                print(f'{c.GREEN}[ {event_log.event(key)} ]{c.END}')
+                print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
                 self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{key} {pos}')[2])
             elif flag == 3:
-                print(f'{c.GREEN}[ {event_log.event(param)} ]{c.END}')
-                count = 9 if param in list_event_6 else 15
+                print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
+                count = 9 if param in list_0 else 15
                 for j in range(10):
                     index = format(j, '02X')
                     self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{param} {index}')[2])
@@ -450,95 +383,26 @@ class ExchangeProtocol(UartSerialPort):
                 tmp_key.append(param)
                 break
             elif flag == 4:
-                print(f'{c.GREEN}[ {event_log.event(param)} ]{c.END}')
-                count = 9 if param in list_event_6 else 15
+                print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
+                count = 9 if param in list_0 else 15
                 self.hex_out.append(self.exchange('GET_EVENT', count, param=f'{param} {pos}')[2])
                 self.tmp_event.append(self.hex_out[:])
                 tmp_key.append(key)
                 break
-
             self.tmp_event.append(self.hex_out[:])
             tmp_key.append(key)
         event_dict = dict(zip(tmp_key, self.tmp_event))
+        return log.print_log(event_dict)
 
-        print('=' * 50)
-        for key, val in event_dict.items():
-            print(f'{c.WARNING}[ {event_log.event(key)} ]{c.END}')
-            if key in list_1:
-                print(f'{c.BLUE}   [ Включение ]          [ Отключение ]')
-                self.print_event(val)
-            elif key in list_2:
-                print(f'{c.BLUE}[ Время коррекции ]')
-                self.print_event_2(val)
-            elif key in list_3:
-                print(f'{c.BLUE}[ Время превышения ]')
-                self.print_event_2(val)
-            elif key == '02':
-                print(f'{c.BLUE} [ До коррекции ]      [ После коррекции ]')
-                self.print_event(val)
-            elif key == '06':
-                print(f'{c.BLUE}[Начало превышения]   [Окончание превышения]')
-                self.print_event(val)
-            elif key in list_4:
-                print(f'{c.BLUE}[ Время сброса ]')
-                self.print_event_2(val)
-            elif key == '0A':
-                print(f'{c.BLUE}[ Время инициализации ]')
-                self.print_event_2(val)
-            elif key == '1A':
-                print(f'{c.BLUE}[Начало воздействия]   [Окончание воздействия]')
-                self.print_event(val)
-            elif key == '12':
-                print(f'{c.BLUE}  [Время вскрытия]        [Время закрытия]')
-                self.print_event(val)
-            elif key == '13':
-                function = [event_log.position_5, event_log.position_6, event_log.position_7,
-                            event_log.position_8, event_log.position_9, event_log.position_10,
-                            event_log.position_11, event_log.position_12]
-                for el in val:
-                    byte_array = []
-                    string = el.split(' ')
-                    data = '.'.join(string[1:4])
-                    count = int(string[4])
-                    print(f'{c.BLUE}-{c.END}' * 50)
-                    print(f'{c.BLUE}Дата {data} (Количество операций - {count}){c.END}')
-
-                    for i in range(5, 13):
-                        byte_array.append(format(int(string[i], 16), "08b"))
-                    for i in range(8):
-                        func = function[i]
-                        for j, k in enumerate(reversed(byte_array[i])):
-                            if k == '1':
-                                result = event_log.code(func(j))
-                                print(f'{c.GREEN}{result}{c.END}')
-                print('\n')
-            elif key == '14':
-                function = [event_log.word_1, event_log.word_2, event_log.word_3,
-                            event_log.word_4, event_log.word_5, event_log.word_6]
-                for el in val:
-                    byte_array = []
-                    string = el.split(' ')
-                    time = ':'.join(reversed(string[1:4]))
-                    data = '.'.join(string[4:7])
-                    print(f'{c.BLUE}-{c.END}' * 50)
-                    print(f'{c.BLUE}Дата {data} ({time}){c.END}')
-                    for i in range(7, 13):
-                        byte_array.append(format(int(string[i], 16), "08b"))
-
-                    byte_array[0], byte_array[4] = byte_array[4], byte_array[0]
-                    byte_array[2], byte_array[3] = byte_array[3], byte_array[2]
-                    byte_array[1], byte_array[5] = byte_array[5], byte_array[1]
-
-                    for i in range(6):
-                        func = function[i]
-                        for j, k in enumerate(reversed(byte_array[i])):
-                            if k == '1':
-                                result = func(j)
-                                print(f'{c.GREEN}{result}{c.END}')
-                print('\n')
-                # print(f'{c.BLUE}    [ Время ]               [ Код ]')
-                # for el in val:
-                #     self.var = el.split(' ')
-                #     print(f'{c.GREEN}{":".join(reversed(self.var[1:4]))} ({".".join(self.var[4:7])})  |  '
-                #           f'{" ".join(self.var[7:13])}{c.END}')
-                # print('\n')
+    def set_passwd(self, pwd, md):
+        if md == 'hex':
+            tmp_pass = ' '.join((format(int(i), '02X')) for i in pwd)
+        elif md == 'ascii':
+            tmp_pass = ' '.join((format(ord(i), '02X')) for i in pwd)
+        else:
+            print('Bad password mode (use "hex" or "ascii").')
+            sys.exit()
+        out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split(' ')
+        print(f'{c.GREEN}Изменение пароля  - '
+              f'{get_out(out[1])}{c.END}\n')
+        return
