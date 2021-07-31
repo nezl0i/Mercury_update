@@ -27,7 +27,6 @@ def repeat(func):
             sleep(1)
         print(f'{c.WARNING}Нет ответа от устройства.{c.END}')
         sys.exit()
-
     return wrapper_repeat
 
 
@@ -65,7 +64,6 @@ class ExchangeProtocol(UartSerialPort):
         self.mode = mode
         self.phone = phone
         self.file = file
-
         self.param = ''
         self.call_flag = False
         self.device = ''
@@ -94,7 +92,8 @@ class ExchangeProtocol(UartSerialPort):
                         'GET_PASSWD': [self.id, '06 02', self.param],
                         'SET_PASSWD': [self.id, '03 1F', self.param],
                         'SET_SPODES': [self.id, '03 12', self.param],
-                        'GET_EVENT': [self.id, '04', self.param]
+                        'GET_EVENT': [self.id, '04', self.param],
+                        'SET_DATA': [self.id, '07', self.param]
                         }
 
     def set_id(self, var):
@@ -157,6 +156,7 @@ class ExchangeProtocol(UartSerialPort):
         hi_address = ''
         lo_address = ''
         arg_value = ''
+
         with open(self.file) as f:
             lines = f.readlines()
 
@@ -382,15 +382,17 @@ class ExchangeProtocol(UartSerialPort):
         event_dict = dict(zip(tmp_key, tmp_event))
         return log.print_log(event_dict)
 
-    def set_passwd(self, pwd, md):
-        if md == 'hex':
+    def set_passwd(self, pwd, pass_mode):
+        if pass_mode == 'hex':
             tmp_pass = ' '.join((format(int(i), '02X')) for i in pwd)
-        elif md == 'ascii':
+        elif pass_mode == 'ascii':
             tmp_pass = ' '.join((format(ord(i), '02X')) for i in pwd)
         else:
             print('Bad password mode (use "hex" or "ascii").')
             sys.exit()
         out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split(' ')
-        print(f'{c.GREEN}Изменение пароля  - '
-              f'{get_out(out[1])}{c.END}\n')
+        print(f'{c.GREEN}Изменение пароля  - {get_out(out[1])}{c.END}\n')
         return
+
+    def write_memory(self, memory, data):
+        pass
