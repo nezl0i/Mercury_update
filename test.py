@@ -4,13 +4,12 @@ from ex_protocol import ExchangeProtocol
 from colors import Colors
 
 c = Colors()
-check_out = []
 
 
 def create_parser():
     argv_parser = argparse.ArgumentParser()
     argv_parser.add_argument('-p', '--port', default='/dev/ttyUSB0')  # СОМ порт
-    argv_parser.add_argument('-t', '--timeout', type=float, default=.1)  # Системный таймаут
+    argv_parser.add_argument('-t', '--timeout', type=float, default=.5)  # Системный таймаут
     argv_parser.add_argument('-i', '--number', type=int, default=30)  # Идентификатор счетчика
     argv_parser.add_argument('-l', '--level', type=int, default=2)  # Уровень доступа (1-USER,2-ADMIN)
     argv_parser.add_argument('-pwd', '--password', type=str, default='222222')  # Пароль пользователя
@@ -54,10 +53,11 @@ if __name__ == "__main__":
     # protocol.read_serial()  # Чтение серийного номера ПУ
     # protocol.execution()  # Вариант исполнения
     # protocol.descriptor()  # Дескриптор
-    # protocol.get_vectors()  # Вектора прерываний
+    protocol.get_vectors()  # Вектора прерываний
     # protocol.update_firmware()  # Обновление ПО
     # protocol.get_password()  # Чтение паролей
     # protocol.close_session()  # Закрытие канала связи
     # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
-    protocol.get_event(number=None, position=None)  # Чтение журналов событий
+    # protocol.get_event(number=None, position=None)  # Чтение журналов событий
     # protocol.set_passwd('222222', 'hex')    # Запись нового пароля
+    # protocol.write_memory(2, '00 4F', 6, '01 01 01 01 01 01')

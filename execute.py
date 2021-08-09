@@ -2,11 +2,9 @@ from sys import platform
 
 if platform.startswith('win'):
     from colors import WinColors
-
     c = WinColors()
 else:
     from colors import Colors
-
     c = Colors()
 
 

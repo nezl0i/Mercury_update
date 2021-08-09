@@ -141,9 +141,10 @@ class ExchangeProtocol(UartSerialPort):
         if param:
             self.COMMAND[command_name].pop()
             self.COMMAND[command_name].append(param)
-        data = ' '.join(list(map(lambda var: var, self.COMMAND[command_name])))
+        data = ' '.join(self.COMMAND[command_name])
         transfer = bytearray.fromhex(data + ' ' + crc16(bytearray.fromhex(data)))
-        print_line = ' '.join(format(x, '02x') for x in transfer)
+        # print_line = ' '.join(format(x, '02x') for x in transfer)
+        print_line = ' '.join(map(lambda x: format(x, '02x'), transfer))
         self.write(transfer)
         buffer = self.read(count)
         while buffer:
@@ -153,9 +154,9 @@ class ExchangeProtocol(UartSerialPort):
         return False, print_line, buffer.hex(' ', -1)
 
     def update_firmware(self):
-        hi_address = ''
-        lo_address = ''
-        arg_value = ''
+        hi_address = None
+        lo_address = None
+        arg_value = None
 
         with open(self.file) as f:
             lines = f.readlines()
@@ -173,7 +174,7 @@ class ExchangeProtocol(UartSerialPort):
                     lo_address = format(int(hex_line[1:3], 16), "02X")
 
             elif line.startswith('q'):
-                send_command = f'12 0F 3C 0F FC 10'
+                send_command = '12 0F 3C 0F FC 10'
                 out = self.exchange('GET_FIRMWARE', 4, param=send_command)[2].split(' ')
                 if out[1] == '00':
                     print(f'{c.GREEN}Обновление выполнено успешно!{c.END}')
@@ -344,9 +345,9 @@ class ExchangeProtocol(UartSerialPort):
                 position -= 1
                 pos = format(position, '02X')
                 flag = 2
-            else:
-                print('Некорректный номер записи')
-                sys.exit()
+        else:
+            print('Некорректный номер записи')
+            sys.exit()
 
         for i in range(len(list_all)):
             key = list_all[i]
@@ -394,5 +395,11 @@ class ExchangeProtocol(UartSerialPort):
         print(f'{c.GREEN}Изменение пароля  - {get_out(out[1])}{c.END}\n')
         return
 
-    def write_memory(self, memory, data):
-        pass
+    def write_memory(self, memory, offset, length, data):
+        mem = format(memory, '02X')
+        len_data = format(length, '02X')
+        str_data = f'{mem} {offset} {len_data} {data}'
+        out = self.exchange('SET_DATA', 4, param=str_data)[2].split(' ')
+        print(f'{c.GREEN}Команда записи - '
+              f'{get_out(out[1])}{c.END}\n')
+        return
