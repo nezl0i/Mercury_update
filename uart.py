@@ -41,8 +41,10 @@ class UartSerialPort:
     @staticmethod
     def list_port():
         ports = [port for port in serial.tools.list_ports.comports()]
+        print('=' * 28, 'Default ports', '=' * 28)
         for port in ports:
-            print(f'{port}\n')
+            print(f'{port}')
+        print('='*71, '\n')
 
 #   =========== From CSD terminal settings ================
 
