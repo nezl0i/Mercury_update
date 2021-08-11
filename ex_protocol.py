@@ -345,9 +345,9 @@ class ExchangeProtocol(UartSerialPort):
                 position -= 1
                 pos = format(position, '02X')
                 flag = 2
-        else:
-            print('Некорректный номер записи')
-            sys.exit()
+        # else:
+        #     print('Некорректный номер записи')
+        #     sys.exit()
 
         for i in range(len(list_all)):
             key = list_all[i]
