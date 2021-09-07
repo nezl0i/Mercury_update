@@ -30,7 +30,7 @@ def repeat(func):
     return wrapper_repeat
 
 
-def get_out(tmp):
+def _get(tmp):
     return {
         tmp == "00": "OK",
         tmp == "01": "Недопустимая команда или параметр",
@@ -195,19 +195,19 @@ class ExchangeProtocol(UartSerialPort):
     def test_channel(self):
         out = self.exchange('TEST', 4)[2].split(' ')
         print(f'{c.GREEN}Тест канала связи - '
-              f'{get_out(out[1])}{c.END}\n')
+              f'{_get(out[1])}{c.END}\n')
         return
 
     def open_session(self):
         out = self.exchange('OPEN_SESSION', 4)[2].split(' ')
         print(f'{c.GREEN}Открытие канала связи - '
-              f'{get_out(out[1])}{c.END}\n')
+              f'{_get(out[1])}{c.END}\n')
         return
 
     def close_session(self):
         out = self.exchange('CLOSE_SESSION', 4)[2].split(' ')
         print(f'{c.GREEN}Закрытие канала связи - '
-              f'{get_out(out[1])}{c.END}\n')
+              f'{_get(out[1])}{c.END}\n')
         return
 
     def read_identifier(self):
@@ -303,7 +303,7 @@ class ExchangeProtocol(UartSerialPort):
               f'Протокол - "{default_protocol[value]}"\n'
               f'Межсимвольный таймаут - {byte_timeout}\n'
               f'Тайиаут неактивности - {active_time}\n'
-              f'Выполнение - {get_out(out[1])}{c.END}\n')
+              f'Выполнение - {_get(out[1])}{c.END}\n')
         return
 
     def get_event(self, number=None, position=None):
@@ -392,7 +392,7 @@ class ExchangeProtocol(UartSerialPort):
             print('Bad password mode (use "hex" or "ascii").')
             sys.exit()
         out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split(' ')
-        print(f'{c.GREEN}Изменение пароля  - {get_out(out[1])}{c.END}\n')
+        print(f'{c.GREEN}Изменение пароля  - {_get(out[1])}{c.END}\n')
         return
 
     def write_memory(self, memory, offset, length, data):
@@ -401,5 +401,5 @@ class ExchangeProtocol(UartSerialPort):
         str_data = f'{mem} {offset} {len_data} {data}'
         out = self.exchange('SET_DATA', 4, param=str_data)[2].split(' ')
         print(f'{c.GREEN}Команда записи - '
-              f'{get_out(out[1])}{c.END}\n')
+              f'{_get(out[1])}{c.END}\n')
         return

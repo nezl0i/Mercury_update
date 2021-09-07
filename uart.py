@@ -3,11 +3,16 @@ import serial
 from serial.serialutil import SerialException
 import serial.tools.list_ports
 
+# sudo nano /etc/udev/rules.d/50-myusb.rules
+# KERNEL=="ttyUSB[0-9]*",MODE="0666"
+# KERNEL=="ttyACM[0-9]*",MODE="0666"
+
 
 class UartSerialPort:
     __slots__ = ('port_name', 'port_timeout', 'sp', 'data')
 
     def __init__(self, port_name, port_timeout):
+        self.list_port()
         try:
             self.sp = serial.Serial(
                 port=port_name,
@@ -17,8 +22,8 @@ class UartSerialPort:
                 bytesize=serial.EIGHTBITS,
                 timeout=port_timeout
             )
-        except SerialException:
-            print('Port not opened or port no available.')
+        except SerialException as e:
+            print(f'Port {port_name} not opened or port no available.\n{e.args[1].split(":")[1].strip()}')
             self.sp = None
             sys.exit()
         self.data = ''
