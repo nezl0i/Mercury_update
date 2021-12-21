@@ -12,14 +12,14 @@ else:
 
 def create_parser():
     argv_parser = argparse.ArgumentParser()
-    argv_parser.add_argument('-p', '--port', default='/dev/ttyACM0')  # СОМ порт
+    argv_parser.add_argument('-p', '--port', default='/dev/ttyUSB0')  # СОМ порт
     argv_parser.add_argument('-t', '--timeout', type=float, default=.5)  # Системный таймаут
-    argv_parser.add_argument('-i', '--number', type=int, default=56)  # Идентификатор счетчика
+    argv_parser.add_argument('-i', '--number', type=int, default=40)  # Идентификатор счетчика
     argv_parser.add_argument('-l', '--level', type=int, default=2)  # Уровень доступа (1-USER,2-ADMIN)
     argv_parser.add_argument('-pwd', '--password', type=str, default='222222')  # Пароль пользователя
-    argv_parser.add_argument('-f', '--file', default='update/FIRMWARE_2021.txt')  # Файл прошивки
-    argv_parser.add_argument('-m', '--mode', default=0)  # Режим: 0-"RS-485", 1-"CSD", 2-"TCP/IP"
-    argv_parser.add_argument('-ph', '--phone', default='+79898503741')  # Номер для CSD соединения
+    argv_parser.add_argument('-f', '--file', default='update/FIRMWARE_2019_(90_C5_B8_82).txt')  # Файл прошивки
+    argv_parser.add_argument('-m', '--mode', default=1)  # Режим: 0-"RS-485", 1-"CSD", 2-"TCP/IP"
+    argv_parser.add_argument('-ph', '--phone', default='+79886222987')  # Номер для CSD соединения
     argv_parser.add_argument('-pm', '--pass_mode', default='hex')   # Кодировка пароля
     return argv_parser
 
@@ -55,10 +55,10 @@ if __name__ == "__main__":
     protocol.open_session()  # Открытие канала связи
     protocol.read_identifier()  # Чтение ID прибора учета
     protocol.read_serial()  # Чтение серийного номера ПУ
-    # protocol.execution()  # Вариант исполнения
-    # protocol.descriptor()  # Дескриптор
-    # protocol.get_vectors()  # Вектора прерываний
-    protocol.update_firmware()  # Обновление ПО
+    protocol.execution()  # Вариант исполнения
+    protocol.descriptor()  # Дескриптор
+    protocol.get_vectors()  # Вектора прерываний
+    # protocol.update_firmware()  # Обновление ПО
     # protocol.get_password()  # Чтение паролей
     # protocol.close_session()  # Закрытие канала связи
     # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
