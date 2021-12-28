@@ -35,22 +35,8 @@ def repeat(func):
         sys.exit()
     return wrapper_repeat
 
-# def _get(tmp):
-#     return {
-#         tmp == "00": "OK",
-#         tmp == "01": "Недопустимая команда или параметр",
-#         tmp == "02": "Внутренняя ошибка счетчика",
-#         tmp == "03": "Недостаточен уровень для удовлетворения запроса",
-#         tmp == "04": "Внутренние часы счетчика уже корректировались в течение текущих суток",
-#         tmp == "05": "Не открыт канал связи"
-#     }[True]
-
 
 class ExchangeProtocol(UartSerialPort):
-    # __slots__ = ('port_name', 'port_timeout', 'password', 'identifier', 'access', 'mode',
-    #              'file', '__password', '__id', '_access', 'buffer', 'param', 'hex_out', 'phone', 'call_flag',
-    #              'CALL', 'COMMAND', 'HARDWARE', 'device', 'tmp_event', 'pass_mode',
-    #              'TCP_HOST', 'TCP_PORT', 'TIMEOUT', 's', 'combine')
 
     def __init__(self, debug):
         super().__init__()
@@ -89,23 +75,6 @@ class ExchangeProtocol(UartSerialPort):
 
         self.init()
 
-        # self.COMMAND = {
-        #                 'TEST': [self.id, '00'],
-        #                 'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
-        #                 'CLOSE_SESSION': [self.id, '02'],
-        #                 'GET_IDENTIFIER': [self.id, '08 05'],
-        #                 'GET_SERIAL': [self.id, '08 00'],
-        #                 'GET_EXECUTION': [self.id, '08 01 00'],
-        #                 'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
-        #                 'GET_VECTORS': [self.id, '06 04', self.param],
-        #                 'GET_FIRMWARE': [self.id, '07 05', self.param],
-        #                 'GET_PASSWD': [self.id, '06 02', self.param],
-        #                 'SET_PASSWD': [self.id, '03 1F', self.param],
-        #                 'SET_SPODES': [self.id, '03 12', self.param],
-        #                 'GET_EVENT': [self.id, '04', self.param],
-        #                 'SET_DATA': [self.id, '07', self.param]
-        #                 }
-
     def checkout(self, text, out):
         print(f'{c.GREEN}{text} - {self.combine.get(out[1])}{c.END}\n')
 
@@ -136,16 +105,13 @@ class ExchangeProtocol(UartSerialPort):
             self.s.connect((self.TCP_HOST, self.TCP_PORT))
             self.s.settimeout(self.TCP_TIMEOUT)
             print(f'Connected to {self.TCP_HOST}:{self.TCP_PORT}\n')
-            # self.test_channel()
-            # self.open_session()
-            # return self.s
         except socket.error as err:
             print(err)
             sys.exit()
         return
 
     def init(self):
-        if self.mode == 1:  # CSD mode +79886036564
+        if self.mode == 1:
             self.csd_connect()
         if self.mode == 2:
             self.socket_connect()
@@ -250,8 +216,6 @@ class ExchangeProtocol(UartSerialPort):
         """
         out = self.exchange('TEST', 4)[2].split(' ')
         self.checkout('Тест канала связи', out)
-        # print(f'{c.GREEN}Тест канала связи - '
-        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
 
     def open_session(self):
@@ -260,8 +224,6 @@ class ExchangeProtocol(UartSerialPort):
         """
         out = self.exchange('OPEN_SESSION', 4)[2].split(' ')
         self.checkout('Открытие канала связи', out)
-        # print(f'{c.GREEN}Открытие канала связи - '
-        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
 
     def close_session(self):
@@ -270,8 +232,6 @@ class ExchangeProtocol(UartSerialPort):
         """
         out = self.exchange('CLOSE_SESSION', 4)[2].split(' ')
         self.checkout('Закрытие канала связи', out)
-        # print(f'{c.GREEN}Закрытие канала связи - '
-        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
 
     def read_identifier(self):
@@ -484,7 +444,6 @@ class ExchangeProtocol(UartSerialPort):
             sys.exit()
         out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split(' ')
         self.checkout('Изменение пароля', out)
-        # print(f'{c.GREEN}Изменение пароля  - {self.combine.get(out[1])}{c.END}\n')
         return
 
     def write_memory(self, memory, offset, length, data):
@@ -501,6 +460,4 @@ class ExchangeProtocol(UartSerialPort):
         data = f'{memory} {offset} {count} {data}'
         out = self.exchange('SET_DATA', 4, param=data)[2].split(' ')
         self.checkout('Команда записи', out)
-        # print(f'{c.GREEN}Команда записи - '
-        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
