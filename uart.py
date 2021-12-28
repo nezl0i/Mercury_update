@@ -2,6 +2,7 @@ import sys
 import serial
 from serial.serialutil import SerialException
 import serial.tools.list_ports
+import config as cfg
 
 # sudo nano /etc/udev/rules.d/50-myusb.rules
 # KERNEL=="ttyUSB[0-9]*",MODE="0666"
@@ -9,24 +10,26 @@ import serial.tools.list_ports
 
 
 class UartSerialPort:
-    __slots__ = ('port_name', 'port_timeout', 'sp', 'data')
 
-    def __init__(self, port_name, port_timeout):
-        self.list_port()
-        try:
-            self.sp = serial.Serial(
-                port=port_name,
-                baudrate=9600,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                bytesize=serial.EIGHTBITS,
-                timeout=port_timeout
-            )
-        except SerialException as e:
-            print(f'Port {port_name} not opened or port no available.\n{e.args[1].split(":")[1].strip()}')
-            self.sp = None
-            sys.exit()
-        self.data = ''
+    def __init__(self):
+        if cfg.CONNECT_MODE == 2:
+            return
+        else:
+            self.list_port()
+            try:
+                self.sp = serial.Serial(
+                    port=cfg.UART_PORT,
+                    baudrate=9600,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                    bytesize=serial.EIGHTBITS,
+                    timeout=cfg.UART_PORT_TIMEOUT
+                )
+            except SerialException as e:
+                print(f'Port {cfg.UART_PORT} not opened or port no available.\n{e.args[1].split(":")[1].strip()}')
+                self.sp = None
+                sys.exit()
+            self.data = ''
 
     def __str__(self):
         return f'Port {self.sp.port} open' if self.sp else 'Port not opened or port no available'

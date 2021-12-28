@@ -1,11 +1,14 @@
 import sys
 from sys import platform
-from datetime import datetime
-from time import sleep
-from modbus_crc16 import crc16
-from uart import UartSerialPort
+import socket
 import execute
 import event_log as log
+import config as cfg
+from command import Command
+from datetime import datetime
+from modbus_crc16 import crc16
+from uart import UartSerialPort
+
 
 if platform.startswith('win'):
     from colors import WinColors
@@ -19,82 +22,136 @@ def repeat(func):
     def wrapper_repeat(*args, **kwargs):
         for _ in range(3):
             current_time = datetime.now().strftime('%d.%m.%Y %H:%M:%S.%f')
-            check, get_hex, tmp = func(*args, **kwargs)
+            check, get_hex, buffer = func(*args, **kwargs)
             print(f'[{current_time}] :{c.BLUE} >>', get_hex, c.END)
             if check:
-                print(f'[{current_time}] :{c.FAIL} <<', tmp, c.END)
-                return check, get_hex, tmp
-            sleep(1)
+                print(f'[{current_time}] :{c.FAIL} <<', buffer, c.END)
+                return check, get_hex, buffer
+            else:
+                if buffer is not None:
+                    print(f'[{current_time}] :{c.FAIL} <<', buffer, c.END)
+            # sleep(1)
         print(f'{c.WARNING}Нет ответа от устройства.{c.END}')
         sys.exit()
     return wrapper_repeat
 
-
-def _get(tmp):
-    return {
-        tmp == "00": "OK",
-        tmp == "01": "Недопустимая команда или параметр",
-        tmp == "02": "Внутренняя ошибка счетчика",
-        tmp == "03": "Недостаточен уровень для удовлетворения запроса",
-        tmp == "04": "Внутренние часы счетчика уже корректировались в течение текущих суток",
-        tmp == "05": "Не открыт канал связи"
-    }[True]
+# def _get(tmp):
+#     return {
+#         tmp == "00": "OK",
+#         tmp == "01": "Недопустимая команда или параметр",
+#         tmp == "02": "Внутренняя ошибка счетчика",
+#         tmp == "03": "Недостаточен уровень для удовлетворения запроса",
+#         tmp == "04": "Внутренние часы счетчика уже корректировались в течение текущих суток",
+#         tmp == "05": "Не открыт канал связи"
+#     }[True]
 
 
 class ExchangeProtocol(UartSerialPort):
-    __slots__ = ('port_name', 'port_timeout', 'password', 'identifier', 'access', 'mode', 'file', '__password',
-                 '__id', '_access', 'buffer', 'param', 'hex_out', 'phone', 'call_flag', 'CALL', 'COMMAND',
-                 'hardware', 'device', 'tmp_event', 'pass_mode')
+    # __slots__ = ('port_name', 'port_timeout', 'password', 'identifier', 'access', 'mode',
+    #              'file', '__password', '__id', '_access', 'buffer', 'param', 'hex_out', 'phone', 'call_flag',
+    #              'CALL', 'COMMAND', 'HARDWARE', 'device', 'tmp_event', 'pass_mode',
+    #              'TCP_HOST', 'TCP_PORT', 'TIMEOUT', 's', 'combine')
 
-    def __init__(self, port_name, port_timeout, password='111111', identifier=0, access=1, mode=0, phone='', file='',
-                 pass_mode='hex'):
-        super().__init__(port_name, port_timeout)
-        self.pass_mode = pass_mode
+    def __init__(self, debug):
+        super().__init__()
+
+        self.mode = cfg.CONNECT_MODE
+        self.debug = debug
+        self.file = cfg.FIRMWARE_FILE
+        self.phone = cfg.CSD_PHONE
+        self.__id = format(cfg.DEVICE_ID, '02X')
+        self._access = format(cfg.DEVICE_LEVEL, '02X')
+
+        self.TCP_HOST = cfg.TCP_HOST
+        self.TCP_PORT = cfg.TCP_PORT
+        self.TCP_TIMEOUT = cfg.TCP_TIMEOUT
+
+        self.pass_mode = cfg.DEVICE_PASSWORD_MODE
 
         if self.pass_mode == 'hex':
-            self.__password = ' '.join((format(int(i), '02X')) for i in password)
+            self.__password = ' '.join((format(int(i), '02X')) for i in cfg.DEVICE_PASSWORD)
         elif self.pass_mode == 'ascii':
-            self.__password = ' '.join((format(ord(i), '02X')) for i in password)
+            self.__password = ' '.join((format(ord(i), '02X')) for i in cfg.DEVICE_PASSWORD)
         else:
             print('No pass_mode.')
             sys.exit()
 
-        self.__id = format(identifier, '02X')
-        self._access = format(access, '02X')
-        self.mode = mode
-        self.phone = phone
-        self.file = file
+        self.combine = Command(self.id, self._access, self.passwd, self.phone, self.param)
+
+        self.CALL = self.combine.CALL
+        self.HARDWARE = self.combine.HARDWARE
+        self.COMMAND = self.combine.COMMAND
+
         self.param = ''
         self.call_flag = False
         self.device = ''
+        self.s = None
 
-        self.CALL = {'AT': 'AT\r',
-                     'CBST': 'AT+CBST=71,0,1\r',
-                     'CALL': f'ATD{self.phone}\r'
-                     }
+        self.init()
 
-        self.hardware = {'81A3': 'MSP430F67771', '8190': 'MSP430F6768', '8191': 'MSP430F6769', '8195': 'MSP430F6778',
-                         '8196': 'MSP430F6779', '819F': 'MSP430F67681', '81A0': 'MSP430F67691', '81A4': 'MSP430F67781',
-                         '81A5': 'MSP430F67791', '821E': 'MSP430F6768A', '821F': 'MSP430F6769A', '8223': 'MSP430F6778A',
-                         '8224': 'MSP430F6779A', '822D': 'MSP430F67681A', '822E': 'MSP430F67691A',
-                         '8232': 'MSP430F67781A', '8233': 'MSP430F67791A', 'None': 'None'
-                         }
+        # self.COMMAND = {
+        #                 'TEST': [self.id, '00'],
+        #                 'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
+        #                 'CLOSE_SESSION': [self.id, '02'],
+        #                 'GET_IDENTIFIER': [self.id, '08 05'],
+        #                 'GET_SERIAL': [self.id, '08 00'],
+        #                 'GET_EXECUTION': [self.id, '08 01 00'],
+        #                 'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
+        #                 'GET_VECTORS': [self.id, '06 04', self.param],
+        #                 'GET_FIRMWARE': [self.id, '07 05', self.param],
+        #                 'GET_PASSWD': [self.id, '06 02', self.param],
+        #                 'SET_PASSWD': [self.id, '03 1F', self.param],
+        #                 'SET_SPODES': [self.id, '03 12', self.param],
+        #                 'GET_EVENT': [self.id, '04', self.param],
+        #                 'SET_DATA': [self.id, '07', self.param]
+        #                 }
 
-        self.COMMAND = {'TEST': [self.id, '00'],
-                        'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
-                        'CLOSE_SESSION': [self.id, '02'],
-                        'GET_IDENTIFIER': [self.id, '08 05'],
-                        'GET_SERIAL': [self.id, '08 00'],
-                        'GET_EXECUTION': [self.id, '08 01 00'],
-                        'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
-                        'GET_VECTORS': [self.id, '06 04', self.param],
-                        'GET_FIRMWARE': [self.id, '07 05', self.param],
-                        'GET_PASSWD': [self.id, '06 02', self.param],
-                        'SET_PASSWD': [self.id, '03 1F', self.param],
-                        'SET_SPODES': [self.id, '03 12', self.param],
-                        'GET_EVENT': [self.id, '04', self.param],
-                        'SET_DATA': [self.id, '07', self.param]
-                        }
+    def checkout(self, text, out):
+        print(f'{c.GREEN}{text} - {self.combine.get(out[1])}{c.END}\n')
+
+    def csd_connect(self):
+        print(self.CSD_send(self.CALL['AT']))
+        print(self.CSD_send(self.CALL['CBST']))
+        self.set_time(cfg.CSD_TIMEOUT)
+        for _ in range(3):
+            calling = self.CSD_send(self.CALL['CALL'])
+            print(calling)
+            if calling == 'Connect OK (9600)\n':
+                self.call_flag = True
+                break
+        if self.call_flag:
+            # self.mode = 0
+            return
+        else:
+            sys.exit()
+
+    def socket_connect(self):
+        try:
+            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print('Socket successfully created')
+        except socket.error as e:
+            print(f'Socket creation failed with error as {e}')
+
+        try:
+            self.s.connect((self.TCP_HOST, self.TCP_PORT))
+            self.s.settimeout(self.TCP_TIMEOUT)
+            print(f'Connected to {self.TCP_HOST}:{self.TCP_PORT}\n')
+            # self.test_channel()
+            # self.open_session()
+            # return self.s
+        except socket.error as err:
+            print(err)
+            sys.exit()
+        return
+
+    def init(self):
+        if self.mode == 1:  # CSD mode +79886036564
+            self.csd_connect()
+        if self.mode == 2:
+            self.socket_connect()
+
+        self.test_channel()
+        self.open_session()
 
     def set_id(self, var):
         self.__id = var
@@ -123,21 +180,7 @@ class ExchangeProtocol(UartSerialPort):
 
     @repeat
     def exchange(self, command_name, count, param=''):
-        if self.mode == 1:
-            print(self.CSD_send(self.CALL['AT']))
-            print(self.CSD_send(self.CALL['CBST']))
-            self.set_time(10)
-            for _ in range(3):
-                calling = self.CSD_send(self.CALL['CALL'])
-                print(calling)
-                if calling == 'Connect OK (9600)\n':
-                    self.call_flag = True
-                    break
-            if self.call_flag:
-                self.mode = 0
-            else:
-                sys.exit()
-
+        buffer = None
         if param:
             self.COMMAND[command_name].pop()
             self.COMMAND[command_name].append(param)
@@ -145,13 +188,22 @@ class ExchangeProtocol(UartSerialPort):
         transfer = bytearray.fromhex(data + ' ' + crc16(bytearray.fromhex(data)))
         # print_line = ' '.join(format(x, '02x') for x in transfer)
         print_line = ' '.join(map(lambda x: format(x, '02x'), transfer))
-        self.write(transfer)
-        buffer = self.read(count)
+
+        if self.mode != 2:
+            self.write(transfer)
+            buffer = self.read(count)
+        else:
+            try:
+                self.s.sendall(transfer)
+                buffer = self.s.recv(count)
+            except socket.error:
+                pass
+
         while buffer:
             if len(buffer) == count:
                 return True, print_line, buffer.hex(' ', -1)
-            break
-        return False, print_line, buffer.hex(' ', -1)
+            return False, print_line, buffer.hex(' ', -1)
+        return False, print_line, buffer
 
     def update_firmware(self):
         hi_address = None
@@ -193,30 +245,48 @@ class ExchangeProtocol(UartSerialPort):
                     arg_value = '00'
 
     def test_channel(self):
+        """
+        Тест канала связи
+        """
         out = self.exchange('TEST', 4)[2].split(' ')
-        print(f'{c.GREEN}Тест канала связи - '
-              f'{_get(out[1])}{c.END}\n')
+        self.checkout('Тест канала связи', out)
+        # print(f'{c.GREEN}Тест канала связи - '
+        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
 
     def open_session(self):
+        """
+        Авторизация с устройством
+        """
         out = self.exchange('OPEN_SESSION', 4)[2].split(' ')
-        print(f'{c.GREEN}Открытие канала связи - '
-              f'{_get(out[1])}{c.END}\n')
+        self.checkout('Открытие канала связи', out)
+        # print(f'{c.GREEN}Открытие канала связи - '
+        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
 
     def close_session(self):
+        """
+        Закрытие канала связи
+        """
         out = self.exchange('CLOSE_SESSION', 4)[2].split(' ')
-        print(f'{c.GREEN}Закрытие канала связи - '
-              f'{_get(out[1])}{c.END}\n')
+        self.checkout('Закрытие канала связи', out)
+        # print(f'{c.GREEN}Закрытие канала связи - '
+        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
 
     def read_identifier(self):
+        """
+        Чтение идентификатора прибора (id)
+        """
         out = self.exchange('GET_IDENTIFIER', 5)[2].split(' ')
         id_result = int(out[2], 16)
         print(f'{c.GREEN}Идентификатор ПУ - {id_result}{c.END}\n')
         return
 
     def read_serial(self):
+        """
+        Чтение серийного номера и даты выпуска
+        """
         out = self.exchange('GET_SERIAL', 10)[2].split(' ')
         tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), out))
         result = ''.join(tmp_check_out[1:5])
@@ -227,6 +297,9 @@ class ExchangeProtocol(UartSerialPort):
         return
 
     def execution(self):
+        """
+        Чтение варианта исполнения
+        """
         var = self.exchange('GET_EXECUTION', 27)[2].split(' ')
         tmp_serial = list(map(lambda x: str(int(x, 16)).zfill(2), var[1:5]))
         tmp_data = list(map(lambda x: str(int(x, 16)).zfill(2), var[5:8]))
@@ -251,13 +324,19 @@ class ExchangeProtocol(UartSerialPort):
                                   byte_3, byte_4, byte_5, byte_6, byte_7)
 
     def descriptor(self):
+        """
+        Чтение дескриптора и типа микроконтроллера
+        """
         out = self.exchange('GET_DESCRIPTOR', 5)[2].split(' ')
         desc = f'{out[2]}{out[1]}'
         print(f'{c.GREEN}Дескриптор ПУ - {desc}\n'
-              f'Микроконтроллер - {self.hardware[desc]}{c.END}\n')
+              f'Микроконтроллер - {self.HARDWARE[desc]}{c.END}\n')
         return
 
     def get_vectors(self):
+        """
+        Чтение векторов прерываний
+        """
         var = []
         param = ['F1 C0 10', 'F1 D0 10', 'F1 E0 10', 'F1 F0 10']
         for i in range(len(param)):
@@ -267,6 +346,9 @@ class ExchangeProtocol(UartSerialPort):
         return
 
     def get_password(self):
+        """
+        Чтение паролей
+        """
         var = []
         param = ['00 4F 06', '00 48 06']
         for i in range(len(param)):
@@ -283,6 +365,7 @@ class ExchangeProtocol(UartSerialPort):
 
     def set_spodes(self, channel, value, byte_timeout, active_time):
         """
+        Переключение протоколов
         :param channel: 0 – оптопорт, 1 – встроенный, 2 – левый канал, 3 – правый канал
         :param value: 0 – «Меркурий», 1 – «СПОДЭС»
         :param byte_timeout: Межсимвольный таймаут
@@ -302,12 +385,13 @@ class ExchangeProtocol(UartSerialPort):
         print(f'{c.GREEN}Интерфейс - "{interface[channel]}"\n'
               f'Протокол - "{default_protocol[value]}"\n'
               f'Межсимвольный таймаут - {byte_timeout}\n'
-              f'Тайиаут неактивности - {active_time}\n'
-              f'Выполнение - {_get(out[1])}{c.END}\n')
+              f'Таймаут неактивности - {active_time}\n'
+              f'Выполнение - {self.combine.get(out[1])}{c.END}\n')
         return
 
     def get_event(self, number=None, position=None):
         """
+        Чтение журналов событий
         :param number: Номер журнала (1-26), None - читать все журналы
         :param position: Номер записи (1-10), None - читать все записи
         :return: Результат
@@ -315,6 +399,7 @@ class ExchangeProtocol(UartSerialPort):
 
         list_all = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '0A', '0B', '0C', '0D',
                     '0E', '0F', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1A']
+
         list_0 = ['07', '08', '09', '0A', '0B', '0C', '0D', '0E', '0F', '10', '11', '15', '16']
         param = None
         pos = None
@@ -384,6 +469,12 @@ class ExchangeProtocol(UartSerialPort):
         return log.print_log(event_dict)
 
     def set_passwd(self, pwd, pass_mode):
+        """
+        Запись паролей для текущего уровня доступа
+        :param pwd: Пароль
+        :param pass_mode: Кодировка пароля
+        :return:
+        """
         if pass_mode == 'hex':
             tmp_pass = ' '.join((format(int(i), '02X')) for i in pwd)
         elif pass_mode == 'ascii':
@@ -392,14 +483,24 @@ class ExchangeProtocol(UartSerialPort):
             print('Bad password mode (use "hex" or "ascii").')
             sys.exit()
         out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split(' ')
-        print(f'{c.GREEN}Изменение пароля  - {_get(out[1])}{c.END}\n')
+        self.checkout('Изменение пароля', out)
+        # print(f'{c.GREEN}Изменение пароля  - {self.combine.get(out[1])}{c.END}\n')
         return
 
     def write_memory(self, memory, offset, length, data):
-        mem = format(memory, '02X')
-        len_data = format(length, '02X')
-        str_data = f'{mem} {offset} {len_data} {data}'
-        out = self.exchange('SET_DATA', 4, param=str_data)[2].split(' ')
-        print(f'{c.GREEN}Команда записи - '
-              f'{_get(out[1])}{c.END}\n')
+        """
+        Прямая запись по физическим адресам памяти
+        :param memory: Номер памяти
+        :param offset: Адрес
+        :param length: Количество байт
+        :param data: Данные
+        :return:
+        """
+        memory = format(memory, '02X')
+        count = format(length, '02X')
+        data = f'{memory} {offset} {count} {data}'
+        out = self.exchange('SET_DATA', 4, param=data)[2].split(' ')
+        self.checkout('Команда записи', out)
+        # print(f'{c.GREEN}Команда записи - '
+        #       f'{self.combine.get(out[1])}{c.END}\n')
         return
