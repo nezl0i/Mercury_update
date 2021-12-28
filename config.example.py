@@ -1,0 +1,27 @@
+# Connect MODE
+CONNECT_MODE = 1
+
+# Debug MODE
+DEBUG = False
+
+# Serial port
+UART_PORT = '/dev/ttyUSB0'
+UART_PORT_TIMEOUT = .05  # UART(0.048 - 0.5), CSD()
+
+# TCP/IP
+TCP_HOST = ''
+TCP_PORT = 1
+TCP_TIMEOUT = 7  # Timeout TCP(2-10)
+
+# Device
+DEVICE_ID = 30
+DEVICE_LEVEL = 2
+DEVICE_PASSWORD = '222222'
+DEVICE_PASSWORD_MODE = 'hex'
+
+# Update firmware
+FIRMWARE_FILE = ''
+
+# CSD MODE
+CSD_PHONE = ''
+CSD_TIMEOUT = 15

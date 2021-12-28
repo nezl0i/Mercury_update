@@ -23,13 +23,16 @@ def repeat(func):
         for _ in range(3):
             current_time = datetime.now().strftime('%d.%m.%Y %H:%M:%S.%f')
             check, get_hex, buffer = func(*args, **kwargs)
-            print(f'[{current_time}] :{c.BLUE} >>', get_hex, c.END)
+            if cfg.DEBUG:
+                print(f'[{current_time}] :{c.BLUE} >>', get_hex, c.END)
             if check:
-                print(f'[{current_time}] :{c.FAIL} <<', buffer, c.END)
+                if cfg.DEBUG:
+                    print(f'[{current_time}] :{c.FAIL} <<', buffer, c.END)
                 return check, get_hex, buffer
             else:
                 if buffer is not None:
-                    print(f'[{current_time}] :{c.FAIL} <<', buffer, c.END)
+                    if cfg.DEBUG:
+                        print(f'[{current_time}] :{c.FAIL} <<', buffer, c.END)
             # sleep(1)
         print(f'{c.WARNING}Нет ответа от устройства.{c.END}')
         sys.exit()
@@ -38,11 +41,10 @@ def repeat(func):
 
 class ExchangeProtocol(UartSerialPort):
 
-    def __init__(self, debug):
+    def __init__(self):
         super().__init__()
 
         self.mode = cfg.CONNECT_MODE
-        self.debug = debug
         self.file = cfg.FIRMWARE_FILE
         self.phone = cfg.CSD_PHONE
         self.__id = format(cfg.DEVICE_ID, '02X')
@@ -62,16 +64,16 @@ class ExchangeProtocol(UartSerialPort):
             print('No pass_mode.')
             sys.exit()
 
+        self.param = ''
+        self.call_flag = False
+        self.device = ''
+        self.s = None
+
         self.combine = Command(self.id, self._access, self.passwd, self.phone, self.param)
 
         self.CALL = self.combine.CALL
         self.HARDWARE = self.combine.HARDWARE
         self.COMMAND = self.combine.COMMAND
-
-        self.param = ''
-        self.call_flag = False
-        self.device = ''
-        self.s = None
 
         self.init()
 
@@ -89,7 +91,6 @@ class ExchangeProtocol(UartSerialPort):
                 self.call_flag = True
                 break
         if self.call_flag:
-            # self.mode = 0
             return
         else:
             sys.exit()

@@ -1,5 +1,4 @@
 import sys
-import config as cfg
 from ex_protocol import ExchangeProtocol
 
 
@@ -11,13 +10,11 @@ else:
     c = Colors()
 
 
-protocol = ExchangeProtocol(debug=cfg.DEBUG)
+protocol = ExchangeProtocol()
 
 if __name__ == "__main__":
 
     # protocol.list_port()  # Список доступных портов
-    # protocol.test_channel()  # Тест канала связи
-    # protocol.open_session()  # Открытие канала связи
     protocol.read_identifier()  # Чтение ID прибора учета
     protocol.read_serial()  # Чтение серийного номера ПУ
     protocol.execution()  # Вариант исполнения
@@ -25,7 +22,6 @@ if __name__ == "__main__":
     protocol.get_vectors()  # Вектора прерываний
     # protocol.update_firmware()  # Обновление ПО
     # protocol.get_password()  # Чтение паролей
-    # protocol.close_session()  # Закрытие канала связи
     # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
     # protocol.get_event(number=None, position=None)  # Чтение журналов событий
     # protocol.set_passwd('222222', 'hex')    # Запись нового пароля
