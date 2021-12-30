@@ -15,7 +15,7 @@ class Command:
             'GET_EXECUTION': [self.id, '08 01 00'],
             'GET_DESCRIPTOR': [self.id, '06 04 1A 04 02'],
             'GET_VECTORS': [self.id, '06 04', self.param],
-            'GET_FIRMWARE': [self.id, '07 05', self.param],
+            'UPDATE_FIRMWARE': [self.id, '07 05', self.param],
             'GET_PASSWD': [self.id, '06 02', self.param],
             'SET_PASSWD': [self.id, '03 1F', self.param],
             'SET_SPODES': [self.id, '03 12', self.param],

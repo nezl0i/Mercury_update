@@ -194,7 +194,7 @@ class ExchangeProtocol(UartSerialPort):
 
             elif line.startswith('q'):
                 send_command = '12 0F 3C 0F FC 10'
-                out = self.exchange('GET_FIRMWARE', 4, param=send_command)[2].split(' ')
+                out = self.exchange('UPDATE_FIRMWARE', 4, param=send_command)[2].split(' ')
                 if out[1] == '00':
                     print(f'{c.GREEN}Обновление выполнено успешно!{c.END}')
                 else:
@@ -202,7 +202,7 @@ class ExchangeProtocol(UartSerialPort):
                 return
             else:
                 send_command = f'{arg_value} {hi_address} {lo_address} {line.rstrip()}'
-                self.exchange('GET_FIRMWARE', 4, param=send_command)
+                self.exchange('UPDATE_FIRMWARE', 4, param=send_command)
                 if lo_address == 'FF':
                     hi_address = format(int(hi_address, 16) + 1, "02X")
                     lo_address = '00'
@@ -215,7 +215,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Тест канала связи
         """
-        out = self.exchange('TEST', 4)[2].split(' ')
+        out = self.exchange('TEST', 4)[2].split()
         self.checkout('Тест канала связи', out)
         return
 
@@ -223,7 +223,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Авторизация с устройством
         """
-        out = self.exchange('OPEN_SESSION', 4)[2].split(' ')
+        out = self.exchange('OPEN_SESSION', 4)[2].split()
         self.checkout('Открытие канала связи', out)
         return
 
@@ -231,7 +231,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Закрытие канала связи
         """
-        out = self.exchange('CLOSE_SESSION', 4)[2].split(' ')
+        out = self.exchange('CLOSE_SESSION', 4)[2].split()
         self.checkout('Закрытие канала связи', out)
         return
 
@@ -239,7 +239,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Чтение идентификатора прибора (id)
         """
-        out = self.exchange('GET_IDENTIFIER', 5)[2].split(' ')
+        out = self.exchange('GET_IDENTIFIER', 5)[2].split()
         id_result = int(out[2], 16)
         print(f'{c.GREEN}Идентификатор ПУ - {id_result}{c.END}\n')
         return
@@ -248,7 +248,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Чтение серийного номера и даты выпуска
         """
-        out = self.exchange('GET_SERIAL', 10)[2].split(' ')
+        out = self.exchange('GET_SERIAL', 10)[2].split()
         tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), out))
         result = ''.join(tmp_check_out[1:5])
         self.set_device(result)
@@ -261,7 +261,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Чтение варианта исполнения
         """
-        var = self.exchange('GET_EXECUTION', 27)[2].split(' ')
+        var = self.exchange('GET_EXECUTION', 27)[2].split()
         tmp_serial = list(map(lambda x: str(int(x, 16)).zfill(2), var[1:5]))
         tmp_data = list(map(lambda x: str(int(x, 16)).zfill(2), var[5:8]))
         tmp_version = list(map(lambda x: str(int(x, 16)).zfill(2), var[8:11]))
@@ -288,7 +288,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         Чтение дескриптора и типа микроконтроллера
         """
-        out = self.exchange('GET_DESCRIPTOR', 5)[2].split(' ')
+        out = self.exchange('GET_DESCRIPTOR', 5)[2].split()
         desc = f'{out[2]}{out[1]}'
         print(f'{c.GREEN}Дескриптор ПУ - {desc}\n'
               f'Микроконтроллер - {self.HARDWARE[desc]}{c.END}\n')
@@ -301,7 +301,7 @@ class ExchangeProtocol(UartSerialPort):
         var = []
         param = ['F1 C0 10', 'F1 D0 10', 'F1 E0 10', 'F1 F0 10']
         for i in range(len(param)):
-            var.append(' '.join(self.exchange('GET_VECTORS', 19, param=param[i])[2].split(' ')[1:16]))
+            var.append(' '.join(self.exchange('GET_VECTORS', 19, param=param[i])[2].split()[1:16]))
         print(f'{c.GREEN}Вектора прерываний:')
         print(*var, c.END, sep='\n')
         return
@@ -313,7 +313,7 @@ class ExchangeProtocol(UartSerialPort):
         var = []
         param = ['00 4F 06', '00 48 06']
         for i in range(len(param)):
-            var.append(self.exchange('GET_PASSWD', 9, param=param[i])[2].split(' ')[1:7])
+            var.append(self.exchange('GET_PASSWD', 9, param=param[i])[2].split()[1:7])
         for i, el in enumerate(var, 1):
             passwd = ''.join(map(lambda x: str(int(x, 16)), el))
             if len(passwd) == 6:
@@ -342,7 +342,7 @@ class ExchangeProtocol(UartSerialPort):
         act_time = format(active_time, '02X')
 
         param = f'{ch} {val} 00 {hi_byte_timeout} {lo_byte_timeout} {act_time}'
-        out = self.exchange('SET_SPODES', 4, param=param)[2].split(' ')
+        out = self.exchange('SET_SPODES', 4, param=param)[2].split()
         print(f'{c.GREEN}Интерфейс - "{interface[channel]}"\n'
               f'Протокол - "{default_protocol[value]}"\n'
               f'Межсимвольный таймаут - {byte_timeout}\n'
@@ -443,7 +443,7 @@ class ExchangeProtocol(UartSerialPort):
         else:
             print('Bad password mode (use "hex" or "ascii").')
             sys.exit()
-        out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split(' ')
+        out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[2].split()
         self.checkout('Изменение пароля', out)
         return
 
@@ -458,7 +458,7 @@ class ExchangeProtocol(UartSerialPort):
         """
         memory = format(memory, '02X')
         count = format(length, '02X')
-        data = f'{memory} {offset} {count} {data}'
-        out = self.exchange('SET_DATA', 4, param=data)[2].split(' ')
+        send_data = f'{memory} {offset} {count} {data}'
+        out = self.exchange('SET_DATA', 4, param=send_data)[2].split()
         self.checkout('Команда записи', out)
         return
