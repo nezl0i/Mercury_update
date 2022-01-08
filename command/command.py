@@ -20,7 +20,8 @@ class Command:
             'SET_PASSWD': [self.id, '03 1F', self.param],
             'SET_SPODES': [self.id, '03 12', self.param],
             'GET_EVENT': [self.id, '04', self.param],
-            'SET_DATA': [self.id, '07', self.param]
+            'SET_DATA': [self.id, '07', self.param],
+            'SET_METERS': [self.id, '07 02', self.param]
         }
 
         self.HARDWARE = {

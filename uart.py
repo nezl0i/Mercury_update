@@ -10,7 +10,6 @@ import config as cfg
 
 
 class UartSerialPort:
-
     def __init__(self):
         if cfg.CONNECT_MODE == 2:
             return
@@ -25,26 +24,27 @@ class UartSerialPort:
                     bytesize=serial.EIGHTBITS,
                     timeout=cfg.UART_PORT_TIMEOUT
                 )
-            except SerialException as e:
-                print(f'Port {cfg.UART_PORT} not opened or port no available.\n{e.args[1].split(":")[1].strip()}')
+            except SerialException:
+                print(f'Port {cfg.UART_PORT} not opened or port no available.')
                 self.sp = None
                 sys.exit()
+
             self.data = ''
 
     def __str__(self):
         return f'Port {self.sp.port} open' if self.sp else 'Port not opened or port no available'
 
-    def write(self, data):
-        try:
-            return self.sp.write(data)
-        except AttributeError:
-            return False
-
-    def read(self, count):
-        try:
-            return self.sp.read(count)
-        except AttributeError:
-            return False
+    # def write(self, data):
+    #     try:
+    #         return self.sp.write(data)
+    #     except AttributeError:
+    #         return False
+    #
+    # def read(self, count):
+    #     try:
+    #         return self.sp.read(count)
+    #     except AttributeError:
+    #         return False
 
     @staticmethod
     def list_port():

@@ -1,27 +1,23 @@
-# Connect MODE
-CONNECT_MODE = 1
+# Режим соединения / 0-RS485, 1-CSD, 2-TCP
+MODE = 1
 
-# Debug MODE
-DEBUG = False
+# Параметры для пароля
+START_PASSWORD = 100800
+STOP_PASSWORD = 999999
+PASS_MODE = 'hex'   # 'hex' or 'ascii'
 
-# Serial port
-UART_PORT = '/dev/ttyUSB0'
-UART_PORT_TIMEOUT = .05  # UART(0.048 - 0.5), CSD()
+# Идентификатор ПУ
+PK = 0  # Default '0'
 
-# TCP/IP
-TCP_HOST = ''
-TCP_PORT = 1
-TCP_TIMEOUT = 7  # Timeout TCP(2-10)
+# Настройки Serial порта
+PORT = '/dev/ttyUSB0'   # Serial port Linux-'/dev/tty' Windows-'COM1'
+SERIAL_TIMEOUT = .08
 
-# Device
-DEVICE_ID = 30
-DEVICE_LEVEL = 2
-DEVICE_PASSWORD = '222222'
-DEVICE_PASSWORD_MODE = 'hex'
+# Настройки для CSD соединения
+CSD_PHONE = ''  # if CSD==True
+CSD_TIMEOUT = 10
 
-# Update firmware
-FIRMWARE_FILE = ''
-
-# CSD MODE
-CSD_PHONE = ''
-CSD_TIMEOUT = 15
+# Настройки для TCP соединения
+TCP_HOST = '127.0.0.1'
+TCP_PORT = 8000
+TCP_TIMEOUT = 7
