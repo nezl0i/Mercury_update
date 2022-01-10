@@ -1,7 +1,8 @@
 import json
+import os
 import re
 
-path = r'meters\meters.json'
+path = os.path.join("meters", "meters.json")
 meter = json.load(open(path, encoding='utf8'))
 
 
@@ -21,20 +22,13 @@ def _reverse2(lst):
     return n_lst
 
 
-def _format(json_path, lst, cf, mode):
+def _format(json_path, lst, cf):
     count_lst = []
     for j in range(len(lst)):
-        if mode == 'sub':
-            count_lst.append([
-                re.findall(r'\w\w', format(int(''.join(str("{:.3f}".format(x * cf)).split('.'))), '08X'))
-                for x in json_path[lst[j]]
-            ])
-        elif mode == 'div':
-            count_lst.append([
-                re.findall(r'\w\w', format(int(''.join(str("{:.3f}".format(x / cf)).split('.'))), '08X'))
-                for x in json_path[lst[j]]
-            ])
-
+        count_lst.append([
+            re.findall(r'\w\w', format(int(''.join(str("{:.3f}".format(x * cf)).split('.'))), '08X'))
+            for x in json_path[lst[j]]
+        ])
     return count_lst
 
 
@@ -48,9 +42,9 @@ def _offset(mem_offset, lst):
 
 
 # ===========================================================================================================
-def EnergyReset(k, mode='sub'):
+def EnergyReset(k):
     count_lst = []
-    ap, am, pp, pm = _reverse2(_format(meter, ['A+', 'A-', 'R+', 'R-'], k, mode))
+    ap, am, pp, pm = _reverse2(_format(meter, ['A+', 'A-', 'R+', 'R-'], k))
 
     offset = 0x0000
     for i in range(4):

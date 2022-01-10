@@ -4,10 +4,13 @@ if __name__ == "__main__":
 
     protocol = ExchangeProtocol()
 
+    # ==================== DEFAULT =========================
     # protocol.list_port()  # Список доступных портов
     # protocol.read_identifier()  # Чтение ID прибора учета
     # protocol.read_serial()  # Чтение серийного номера ПУ
     # protocol.execution()  # Вариант исполнения
+    # =====================================================
+
     protocol.descriptor()  # Дескриптор
     protocol.get_vectors()  # Вектора прерываний
     # protocol.update_firmware()  # Обновление ПО

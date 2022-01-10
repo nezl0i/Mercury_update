@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 from meters import meters
@@ -461,23 +462,71 @@ class ExchangeProtocol(UartSerialPort):
         return
 
     def write_meters(self):
-        path = r'meters\meters.json'
+        path = os.path.join("meters", "meters.json")
+        print(path)
         meter = json.load(open(path, encoding='utf8'))
         if self.imp == '1000':
-            mode = 'sub'
             k = 2
         elif self.imp == '500':
-            mode = 'sub'
             k = 1
         else:
-            mode = 'sub'
             k = 10
 
         keys = ["A+", "PhaseA", "Year_A+", "Year_old_A+", "January_A+", "February_A+", "March_A+", "April_A+",
                 "May_A+", "June_A+", "July_A+", "August_A+", "September_A+", "October_A+", "November_A+",
                 "December_A+", "Day_A+", "Day_old_A+"]
 
-        for key in keys:
-            if key in meter:
-                param = meters.EnergyReset(k, mode)
-                self._param_select(param)
+        if keys[0] in meter:
+            param = meters.EnergyReset(k)
+            self._param_select(param)
+        if keys[1] in meter:
+            param = meters.EnergyPhase(k)
+            self._param_select(param)
+        if keys[2] in meter:
+            param = meters.EnergyYear(k)
+            self._param_select(param)
+        if keys[3] in meter:
+            param = meters.EnergyOldYear(k)
+            self._param_select(param)
+        if keys[4] in meter:
+            param = meters.EnergyJanuary(k)
+            self._param_select(param)
+        if keys[5] in meter:
+            param = meters.EnergyFebruary(k)
+            self._param_select(param)
+        if keys[6] in meter:
+            param = meters.EnergyMarch(k)
+            self._param_select(param)
+        if keys[7] in meter:
+            param = meters.EnergyApril(k)
+            self._param_select(param)
+        if keys[8] in meter:
+            param = meters.EnergyMay(k)
+            self._param_select(param)
+        if keys[9] in meter:
+            param = meters.EnergyJune(k)
+            self._param_select(param)
+        if keys[10] in meter:
+            param = meters.EnergyJuly(k)
+            self._param_select(param)
+        if keys[11] in meter:
+            param = meters.EnergyAugust(k)
+            self._param_select(param)
+        if keys[12] in meter:
+            param = meters.EnergySeptember(k)
+            self._param_select(param)
+        if keys[13] in meter:
+            param = meters.EnergyOctober(k)
+            self._param_select(param)
+        if keys[14] in meter:
+            param = meters.EnergyNovember(k)
+            self._param_select(param)
+        if keys[15] in meter:
+            param = meters.EnergyDecember(k)
+            self._param_select(param)
+        if keys[16] in meter:
+            param = meters.EnergyDay(k)
+            self._param_select(param)
+        if keys[17] in meter:
+            param = meters.EnergyOldDay(k)
+            self._param_select(param)
