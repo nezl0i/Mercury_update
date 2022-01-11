@@ -11,8 +11,8 @@ if __name__ == "__main__":
     # protocol.execution()  # Вариант исполнения
     # =====================================================
 
-    protocol.descriptor()  # Дескриптор
-    protocol.get_vectors()  # Вектора прерываний
+    # protocol.descriptor()  # Дескриптор
+    # protocol.get_vectors()  # Вектора прерываний
     # protocol.update_firmware()  # Обновление ПО
     # protocol.get_password()  # Чтение паролей
     # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
@@ -20,4 +20,6 @@ if __name__ == "__main__":
     # protocol.set_passwd('222222', 'hex')    # Запись нового пароля
     # protocol.write_memory(2, '00 4F', 6, '01 01 01 01 01 01')
     # protocol.write_meters()
+    protocol.write_shunt(69)
+    protocol.read_shunt()
 

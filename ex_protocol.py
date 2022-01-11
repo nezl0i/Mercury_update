@@ -1,12 +1,13 @@
 import os
 import sys
 import json
-from meters import meters
-from sys import platform
 import socket
 import execute
-from event import event_log as log
 import config as cfg
+
+from meters import meters
+from sys import platform
+from event import event_log as log
 from command.command import Command
 from datetime import datetime
 from modbus_crc16 import crc16
@@ -14,11 +15,9 @@ from uart import UartSerialPort
 
 if platform.startswith('win'):
     from colors import WinColors
-
     c = WinColors()
 else:
     from colors import Colors
-
     c = Colors()
 
 
@@ -75,6 +74,7 @@ class ExchangeProtocol(UartSerialPort):
         self.s = None
 
         self.imp = '1000'
+        self.version = None
 
         self.combine = Command(self.id, self._access, self.passwd, self.phone, self.param)
 
@@ -110,9 +110,11 @@ class ExchangeProtocol(UartSerialPort):
             print(f'Socket creation failed with error as {e}')
 
         try:
-            self.s.connect((self.TCP_HOST, self.TCP_PORT))
             self.s.settimeout(self.TCP_TIMEOUT)
-            print(f'Connected to {self.TCP_HOST}:{self.TCP_PORT}\n')
+            print(f'Connection with {self.TCP_HOST}:{self.TCP_PORT} ...')
+            self.s.connect((self.TCP_HOST, self.TCP_PORT))
+            self.s.settimeout(None)
+            print(f'Connection OK.')
         except socket.error as err:
             print(err)
             sys.exit()
@@ -132,6 +134,7 @@ class ExchangeProtocol(UartSerialPort):
 
     def set_id(self, var):
         self.__id = var
+        return self.__id
 
     def set_imp(self, var):
         self.imp = var
@@ -270,7 +273,7 @@ class ExchangeProtocol(UartSerialPort):
         tmp_revision = list(map(lambda x: str(int(x, 16)).zfill(2), var[19:21]))
         self.set_device(''.join(tmp_serial))
         data = '.'.join(tmp_data)
-        version = '.'.join(tmp_version)
+        self.version = '.'.join(tmp_version)
         revision = '.'.join(tmp_revision)
         crc_po = f"{''.join(var[17:19]).upper()}"
 
@@ -283,7 +286,7 @@ class ExchangeProtocol(UartSerialPort):
         byte_7 = format(int(var[21], 16), "08b")
         # byte_8 = format(int(check_out[22], 16), "08b")
         self.set_imp(execute.byte_25(byte_2[4:]).split()[0])  # Количество импульсов
-        return execute.print_exec(self.device, data, version, revision, crc_po, byte_1, byte_2,
+        return execute.print_exec(self.device, data, self.version, revision, crc_po, byte_1, byte_2,
                                   byte_3, byte_4, byte_5, byte_6, byte_7)
 
     def descriptor(self):
@@ -530,3 +533,72 @@ class ExchangeProtocol(UartSerialPort):
         if keys[17] in meter:
             param = meters.EnergyOldDay(k)
             self._param_select(param)
+
+    def read_shunt(self):
+        """Чтение параметров программного шунта """
+        # SoftVersion = "2" - Меркурий-230
+        # SoftVersion = "3" - Меркурий-231
+        # SoftVersion = "4" - Меркурий-232
+        # SoftVersion = "7"  - Меркурий-233
+        # SoftVersion = "8" - Меркурий-236
+        # SoftVersion = "9" - Меркурий-234
+        # SoftVersion = "11" - Меркурий-231i
+        # print(self.imp)
+        _soft = int(self.version.split('.')[0], 16)
+        # print(_soft)
+        if _soft == 9:
+            self.param = '18 70 0A'
+        elif _soft == 2 or _soft == 8:
+            self.param = '10 70 0A'
+        elif _soft == 11:
+            self.param = '10 00 0A'
+        else:
+            print('Тип прибора не определен.')
+            return
+
+        out = self.exchange('GET_SHUNT', 13, param=self.param)[2].split()
+        # print(out)
+        shunt_mode = int(out[3], 16)
+        event_code = int(out[4], 16)
+
+        if event_code == 1:
+            print_event_code = 'отключен'
+        else:
+            print_event_code = 'не отключен'
+
+        if shunt_mode == 1:
+            shunt_value = int(out[1], 16)
+            percent = 100 - (100 / shunt_value)
+        elif shunt_mode == 2:
+            shunt_value = int(out[2], 16) + 1
+            percent = 100 / shunt_value
+        else:
+            shunt_mode = 'не определено'
+            shunt_value = 'не определено'
+            percent = 0
+        print(f'{c.GREEN}Текущий режим - {shunt_mode}{c.END}')
+        print(f'{c.GREEN}Значение - {shunt_value}{c.END}')
+        print(f'{c.GREEN}Недоучет - {percent} %{c.END}')
+        print(f'{c.GREEN}Журнал "Дата и код программирования" - {print_event_code}{c.END}\n')
+        return
+
+    def write_shunt(self, percent, code=True):
+        """
+
+        :param percent: Процент недоучета
+        :param code: Журнал Дата и код программирования True-отключить, False-включить
+        :return:
+        """
+        if code:
+            w_code = '01'
+        else:
+            w_code = '00'
+        if percent > 50:
+            value = format(int(100 / (100 - percent)), "02X")
+            self.param = f'{value} 00 01 {w_code} 00 00 00 00 00 00'
+        else:
+            value = format(int(100 / percent), "02X")
+            self.param = f'00 {value} 02 {w_code} 00 00 00 00 00 00'
+        out = self.exchange('SET_SHUNT', 4, param=self.param)[2].split()
+        self.checkout('Команда записи шунта', out)
+        return
