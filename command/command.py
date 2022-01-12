@@ -1,3 +1,8 @@
+import re
+
+pattern = re.compile(r'\w\w')
+
+
 class Command:
     def __init__(self, dev_id, access, passwd, phone, param):
         self.id = dev_id
@@ -23,7 +28,8 @@ class Command:
             'SET_DATA': [self.id, '07', self.param],
             'SET_METERS': [self.id, '07 02', self.param],
             'GET_SHUNT': [self.id, '06 04', self.param],
-            'SET_SHUNT': [self.id, '07 01 F4 00 0A', self.param]   # ID ",0x07,0x01,0xF4,0x00,0x0A," rez_1 "," rez_2 "," rez_3 "," rez_4 ",0x00,0x00,0x00,0x00,0x00,0x00"
+            'SET_SHUNT': [self.id, '07 01 F4 00 0A', self.param]
+            # ID ",0x07,0x01,0xF4,0x00,0x0A," rez_1 "," rez_2 "," rez_3 "," rez_4 ",0x00,0x00,0x00,0x00,0x00,0x00"
         }
 
         self.HARDWARE = {
@@ -49,4 +55,5 @@ class Command:
             tmp == "03": "Недостаточен уровень для удовлетворения запроса",
             tmp == "04": "Внутренние часы счетчика уже корректировались в течение текущих суток",
             tmp == "05": "Не открыт канал связи"
+            # bool(pattern.match(tmp)): "Ошибка"
         }[True]
