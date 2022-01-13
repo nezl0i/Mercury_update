@@ -50,11 +50,10 @@ class ExchangeProtocol(UartSerialPort):
         self.file = cfg.FIRMWARE_FILE
         self.phone = cfg.CSD_PHONE
         self.__id = format(cfg.DEVICE_ID, '02X')
-        self._access = format(cfg.DEVICE_LEVEL, '02X')
-
-        self.TCP_HOST = cfg.TCP_HOST
-        self.TCP_PORT = cfg.TCP_PORT
-        self.TCP_TIMEOUT = cfg.TCP_TIMEOUT
+        self.__access = format(cfg.DEVICE_LEVEL, '02X')
+        self.__device = ''
+        self.__version = None
+        self.__imp = '1000'
 
         self.pass_mode = cfg.DEVICE_PASSWORD_MODE
 
@@ -68,19 +67,89 @@ class ExchangeProtocol(UartSerialPort):
 
         self.param = ''
         self.call_flag = False
-        self.device = ''
         self.s = None
 
-        self.imp = '1000'
-        self.version = None
+        self.TCP_HOST = cfg.TCP_HOST
+        self.TCP_PORT = cfg.TCP_PORT
+        self.TCP_TIMEOUT = cfg.TCP_TIMEOUT
 
-        self.combine = Command(self.id, self._access, self.passwd, self.phone, self.param)
+        self._init_command()
+        self.init()
+
+    @property
+    def passwd(self):
+        if len(self.__password.split(' ')) != 6:
+            print(f'{c.WARNING}Пароль не должен превышать 6 знаков.{c.END}')
+            sys.exit()
+            # self.__password = self.__password[:17]
+        return self.__password
+
+    @passwd.setter
+    def passwd(self, var):
+        self.__password = var
+
+    @property
+    def id(self):
+        if int(self.__id, 16) > 254:
+            print(f'{c.WARNING}Введен неверный ID прибора учета.{c.END}')
+            sys.exit()
+        return self.__id
+
+    @id.setter
+    def id(self, var):
+        self.__id = var
+
+    @property
+    def imp(self):
+        return self.__imp
+
+    @imp.setter
+    def imp(self, var):
+        self.__imp = var
+
+    @property
+    def device(self):
+        return self.__device
+
+    @device.setter
+    def device(self, var):
+        self.__device = var
+
+    @property
+    def access(self):
+        return self.__access
+
+    @access.setter
+    def access(self, var):
+        self.__access = var
+
+    @property
+    def version(self):
+        return self.__version
+
+    @version.setter
+    def version(self, var):
+        self.__version = var
+
+    def init(self):
+        if self.mode == 1:
+            self.csd_connect()
+        if self.mode == 2:
+            self.socket_connect()
+
+        self.test_channel()
+        self.open_session()
+        self.read_identifier()
+        self.read_serial()
+        self.execution()
+
+    def _init_command(self):
+
+        self.combine = Command(self.id, self.access, self.passwd, self.phone)
 
         self.CALL = self.combine.CALL
         self.HARDWARE = self.combine.HARDWARE
         self.COMMAND = self.combine.COMMAND
-
-        self.init()
 
     def checkout(self, text, out):
         try:
@@ -119,48 +188,6 @@ class ExchangeProtocol(UartSerialPort):
             print(err)
             sys.exit()
         return
-
-    def init(self):
-        if self.mode == 1:
-            self.csd_connect()
-        if self.mode == 2:
-            self.socket_connect()
-
-        self.test_channel()
-        self.open_session()
-        self.read_identifier()
-        self.read_serial()
-        self.execution()
-
-    def set_id(self, var):
-        self.__id = var
-        return
-
-    def set_imp(self, var):
-        self.imp = var
-        return self.imp
-
-    def set_device(self, var):
-        self.device = var
-
-    @property
-    def passwd(self):
-        if len(self.__password.split(' ')) != 6:
-            print(f'{c.WARNING}Пароль не должен превышать 6 знаков.{c.END}')
-            sys.exit()
-            # self.__password = self.__password[:17]
-        return self.__password
-
-    @property
-    def id(self):
-        if int(self.__id, 16) > 254:
-            print(f'{c.WARNING}Введен неверный ID прибора учета.{c.END}')
-            sys.exit()
-        return self.__id
-
-    @property
-    def level(self):
-        return self._access
 
     @repeat
     def exchange(self, command_name, count, param=''):
@@ -214,7 +241,9 @@ class ExchangeProtocol(UartSerialPort):
         """Чтение идентификатора прибора (id) """
         out = self.exchange('GET_IDENTIFIER', 5)[1]
         id_result = int(out[2], 16)
-        # self.set_id(id_result)
+        self.id = out[2]
+        del self.combine
+        self._init_command()
         print(f'{c.GREEN}Идентификатор ПУ - {id_result}{c.END}\n')
         return
 
@@ -223,7 +252,7 @@ class ExchangeProtocol(UartSerialPort):
         out = self.exchange('GET_SERIAL', 10)[1]
         tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), out))
         result = ''.join(tmp_check_out[1:5])
-        self.set_device(result)
+        self.device = result
         work_data = '.'.join(tmp_check_out[5:8])
         print(f'{c.GREEN}Серийный номер - {self.device}\n'
               f'Дата выпуска - {work_data}{c.END}\n')
@@ -236,7 +265,7 @@ class ExchangeProtocol(UartSerialPort):
         tmp_data = list(map(lambda x: str(int(x, 16)).zfill(2), var[5:8]))
         tmp_version = list(map(lambda x: str(int(x, 16)).zfill(2), var[8:11]))
         tmp_revision = list(map(lambda x: str(int(x, 16)).zfill(2), var[19:21]))
-        self.set_device(''.join(tmp_serial))
+        self.device = ''.join(tmp_serial)
         data = '.'.join(tmp_data)
         self.version = '.'.join(tmp_version)
         revision = '.'.join(tmp_revision)
@@ -250,7 +279,7 @@ class ExchangeProtocol(UartSerialPort):
         byte_6 = format(int(var[16], 16), "08b")
         byte_7 = format(int(var[21], 16), "08b")
         # byte_8 = format(int(check_out[22], 16), "08b")
-        self.set_imp(execute.byte_25(byte_2[4:]).split()[0])  # Количество импульсов
+        self.imp = execute.byte_25(byte_2[4:]).split()[0]  # Количество импульсов
         return execute.print_exec(self.device, data, self.version, revision, crc_po, byte_1, byte_2,
                                   byte_3, byte_4, byte_5, byte_6, byte_7)
 
@@ -443,7 +472,7 @@ class ExchangeProtocol(UartSerialPort):
         else:
             print('Bad password mode (use "hex" or "ascii").')
             sys.exit()
-        out = self.exchange('SET_PASSWD', 4, param=f'{self.level} {self.passwd} {tmp_pass}')[1]
+        out = self.exchange('SET_PASSWD', 4, param=f'{self.access} {self.passwd} {tmp_pass}')[1]
         self.checkout('Изменение пароля', out)
         return
 
@@ -628,4 +657,3 @@ class ExchangeProtocol(UartSerialPort):
         out = self.exchange('SET_SERIAL', 4, param=self.param)[1]
         self.checkout('Команда записи серийного номера и даты выпуска', out)
         return
-

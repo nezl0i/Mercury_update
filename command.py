@@ -1,19 +1,14 @@
-import re
-
-pattern = re.compile(r'\w\w')
-
-
 class Command:
-    def __init__(self, dev_id, access, passwd, phone, param):
+    def __init__(self, dev_id, access, passwd, phone):
         self.id = dev_id
-        self._access = access
+        self.access = access
         self.passwd = passwd
         self.phone = phone
-        self.param = param
+        self.param = ''
 
         self.COMMAND = {
             'TEST': [self.id, '00'],
-            'OPEN_SESSION': [self.id, '01', self._access, self.passwd],
+            'OPEN_SESSION': [self.id, '01', self.access, self.passwd],
             'CLOSE_SESSION': [self.id, '02'],
             'GET_IDENTIFIER': [self.id, '08 05'],
             'GET_SERIAL': [self.id, '08 00'],
