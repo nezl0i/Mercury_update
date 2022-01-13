@@ -28,8 +28,8 @@ class Command:
             'SET_DATA': [self.id, '07', self.param],
             'SET_METERS': [self.id, '07 02', self.param],
             'GET_SHUNT': [self.id, '06 04', self.param],
-            'SET_SHUNT': [self.id, '07 01 F4 00 0A', self.param]
-            # ID ",0x07,0x01,0xF4,0x00,0x0A," rez_1 "," rez_2 "," rez_3 "," rez_4 ",0x00,0x00,0x00,0x00,0x00,0x00"
+            'SET_SHUNT': [self.id, '07 01 F4 00 0A', self.param],
+            'SET_SERIAL': [self.id, '07 01 EC 00 08', self.param]
         }
 
         self.HARDWARE = {
