@@ -657,3 +657,10 @@ class ExchangeProtocol(UartSerialPort):
         out = self.exchange('SET_SERIAL', 4, param=self.param)[1]
         self.checkout('Команда записи серийного номера и даты выпуска', out)
         return
+
+    def clear_meters(self):
+        """ Сброс регистров накопленной энергии"""
+        out = self.exchange('CLEAR_METERS', 4)[1]
+        self.checkout('Сброс регистров энергии', out)
+        return
+

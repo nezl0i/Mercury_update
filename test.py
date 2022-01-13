@@ -23,3 +23,4 @@ if __name__ == "__main__":
     # protocol.write_shunt(69)  # Запись шунта
     # protocol.read_shunt()  # Чтение шунта
     # protocol.write_serial_and_date(serial='33257959', date='22.12.20')  # Запись серийного номера и даты выпуска
+    protocol.clear_meters()  # Сброс регистров накопленной энергии
