@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import socket
@@ -469,7 +470,6 @@ class ExchangeProtocol(UartSerialPort):
 
     def write_meters(self):
         path = os.path.join("meters", "meters.json")
-        print(path)
         meter = json.load(open(path, encoding='utf8'))
         if self.imp == '1000':
             k = 2
@@ -539,14 +539,14 @@ class ExchangeProtocol(UartSerialPort):
 
     def read_shunt(self):
         """Чтение параметров программного шунта """
-        # SoftVersion = "2" - Меркурий-230
-        # SoftVersion = "3" - Меркурий-231
-        # SoftVersion = "4" - Меркурий-232
-        # SoftVersion = "7"  - Меркурий-233
-        # SoftVersion = "8" - Меркурий-236
-        # SoftVersion = "9" - Меркурий-234
-        # SoftVersion = "11" - Меркурий-231i
-        # print(self.imp)
+        # _soft  = "2" - Меркурий-230
+        # _soft  = "3" - Меркурий-231
+        # _soft  = "4" - Меркурий-232
+        # _soft  = "7"  - Меркурий-233
+        # _soft  = "8" - Меркурий-236
+        # _soft  = "9" - Меркурий-234
+        # _soft  = "11" - Меркурий-231i
+
         _soft = int(self.version.split('.')[0], 16)
         # print(_soft)
         if _soft == 9:
@@ -603,3 +603,29 @@ class ExchangeProtocol(UartSerialPort):
         out = self.exchange('SET_SHUNT', 4, param=self.param)[1]
         self.checkout('Команда записи шунта', out)
         return
+
+    @staticmethod
+    def two_split(tmp_str):
+        b = re.findall(r'\d\d', tmp_str)
+        return " ".join(map(lambda x: format(int(x), '02X'), b))
+
+    @staticmethod
+    def date_split(tmp_str):
+        b = tmp_str.split(".")
+        return " ".join(map(lambda x: format(int(x), '02X'), b))
+
+    def write_serial_and_date(self, serial, date):
+        """
+        Запись серийного номера и даты выпуска
+
+        :param serial: Серийный номер (строка)
+        :param date: Дата выпуска (ДД.ММ.ГГ)
+        :return:
+        """
+        send_serial = self.two_split(serial)
+        send_date = self.date_split(date)
+        self.param = f'{send_serial} {send_date} 00'
+        out = self.exchange('SET_SERIAL', 4, param=self.param)[1]
+        self.checkout('Команда записи серийного номера и даты выпуска', out)
+        return
+
