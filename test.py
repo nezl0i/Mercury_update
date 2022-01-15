@@ -12,15 +12,16 @@ if __name__ == "__main__":
     # =====================================================
 
     # protocol.descriptor()  # Дескриптор
-    protocol.get_vectors()  # Вектора прерываний
+    # protocol.get_vectors()  # Вектора прерываний
     # protocol.update_firmware()  # Обновление ПО
     # protocol.get_password()  # Чтение паролей
-    # protocol.set_spodes(0, 0, 300, 120)  # Изменение протокола (СПОДЭС, Меркурий)
-    # protocol.get_event(number=11, position=None)  # Чтение журналов событий
-    # protocol.set_passwd('222222', 'hex')    # Запись нового пароля
-    # protocol.write_memory(2, '00 4F', 6, '01 01 01 01 01 01')  # Запись в память
+    # protocol.set_spodes()  # Изменение протокола (СПОДЭС, Меркурий)
+    # protocol.get_event()  # Чтение журналов событий
+    # protocol.set_passwd()    # Запись нового пароля
+    # protocol.write_memory()  # Запись в память
     # protocol.write_meters()  # Запись показаний
-    # protocol.write_shunt(69)  # Запись шунта
+    # protocol.write_shunt()  # Запись шунта
     # protocol.read_shunt()  # Чтение шунта
-    # protocol.write_serial_and_date(serial='33257959', date='22.12.20')  # Запись серийного номера и даты выпуска
-    protocol.clear_meters()  # Сброс регистров накопленной энергии
+    # protocol.write_serial_and_date()  # Запись серийного номера и даты выпуска
+    # protocol.clear_meters()  # Сброс регистров накопленной энергии
+    # protocol.time_set()  # Установка времени

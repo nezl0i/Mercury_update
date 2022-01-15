@@ -25,7 +25,9 @@ class Command:
             'GET_SHUNT': [self.id, '06 04', self.param],
             'SET_SHUNT': [self.id, '07 01 F4 00 0A', self.param],
             'SET_SERIAL': [self.id, '07 01 EC 00 08', self.param],
-            'CLEAR_METERS': [self.id, '03 20']
+            'CLEAR_METERS': [self.id, '03 20'],
+            'GET_TIME': [self.id, '04 00'],
+            'SET_TIME': [self.id, '03 0C', self.param]
         }
 
         self.HARDWARE = {

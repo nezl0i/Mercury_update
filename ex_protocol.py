@@ -3,6 +3,8 @@ import re
 import sys
 import json
 import socket
+from time import sleep
+
 import execute
 import config as cfg
 
@@ -356,18 +358,17 @@ class ExchangeProtocol(UartSerialPort):
                     lo_address = format(int(lo_address, 16) + 1, "02X")
                     arg_value = '00'
 
-    def set_spodes(self, channel, value, byte_timeout, active_time):
+    def set_spodes(self):
         """Переключение протоколов
-        :param channel: 0 – оптопорт, 1 – встроенный, 2 – левый канал, 3 – правый канал
-        :param value: 0 – «Меркурий», 1 – «СПОДЭС»
-        :param byte_timeout: Межсимвольный таймаут
-        :param active_time: Таймаут неактивности
-        :return: Result
         """
         interface = {0: "Оптопорт", 1: "Встроенный", 2: "Левый канал", 3: "Правый канал"}
         default_protocol = {0: "Меркурий", 1: "СПОДЭС"}
+        channel = int(input('Канал 0 – оптопорт, 1 – встроенный, 2 – левый, 3 – правый: '))
+        value = int(input('Протокол 0 – «Меркурий», 1 – «СПОДЭС»: '))
         ch = format(channel, '02X')
         val = format(value, '02X')
+        byte_timeout = int(input('межсимвольный таймаут (default 300): '))
+        active_time = int(input('Таймаут неактивности (default 120): '))
         lo_byte_timeout = format(byte_timeout, '04X')[:2]
         hi_byte_timeout = format(byte_timeout, '04X')[2:]
         act_time = format(active_time, '02X')
@@ -443,7 +444,7 @@ class ExchangeProtocol(UartSerialPort):
                 count = 9 if param in list_0 else 15
                 for j in range(10):
                     index = format(j, '02X')
-                    tmp_out.append(' '.join(self.exchange('GET_EVENT', count, param=f'{param} {index}')[1]))
+                    tmp_out.append(list(self.exchange('GET_EVENT', count, param=f'{param} {index}')[1]))
                 tmp_event.append(tmp_out[:])
                 tmp_key.append(param)
                 break
@@ -456,15 +457,14 @@ class ExchangeProtocol(UartSerialPort):
                 break
             tmp_event.append(tmp_out[:])
             tmp_key.append(key)
+
         event_dict = dict(zip(tmp_key, tmp_event))
         return log.print_log(event_dict)
 
-    def set_passwd(self, pwd, pass_mode):
-        """Запись паролей для текущего уровня доступа
-        :param pwd: Пароль
-        :param pass_mode: Кодировка пароля
-        :return:
-        """
+    def set_passwd(self):
+        """Запись паролей для текущего уровня доступа """
+        pwd = input('Введите пароль: ')
+        pass_mode = input('Кодировка (hex/ascii): ')
         if pass_mode == 'hex':
             tmp_pass = ' '.join((format(int(i), '02X')) for i in pwd)
         elif pass_mode == 'ascii':
@@ -476,14 +476,13 @@ class ExchangeProtocol(UartSerialPort):
         self.checkout('Изменение пароля', out)
         return
 
-    def write_memory(self, memory, offset, length, data):
+    def write_memory(self):
         """Прямая запись по физическим адресам памяти
-        :param memory: Номер памяти
-        :param offset: Адрес
-        :param length: Количество байт
-        :param data: Данные
-        :return:
         """
+        memory = int(input('Номер памяти: '))
+        offset = input('Адрес (через пробел "00 4f"): ')
+        length = int(input('Количество байт: '))
+        data = input('Данные (через пробел): ')
         mem = format(memory, '02X')
         count = format(length, '02X')
         send_data = f'{mem} {offset} {count} {data}'
@@ -500,6 +499,7 @@ class ExchangeProtocol(UartSerialPort):
     def write_meters(self):
         path = os.path.join("meters", "meters.json")
         meter = json.load(open(path, encoding='utf8'))
+        # print(self.imp)
         if self.imp == '1000':
             k = 2
         elif self.imp == '500':
@@ -513,6 +513,8 @@ class ExchangeProtocol(UartSerialPort):
 
         if keys[0] in meter:
             param = meters.EnergyReset(k)
+            self._param_select(param)
+            param = meters.EnergyResetDouble(k)
             self._param_select(param)
         if keys[1] in meter:
             param = meters.EnergyPhase(k)
@@ -614,13 +616,13 @@ class ExchangeProtocol(UartSerialPort):
         print(f'{c.GREEN}Журнал "Дата и код программирования" - {print_event_code}{c.END}\n')
         return
 
-    def write_shunt(self, percent, code=True):
+    def write_shunt(self, code=True):
         """
-
-        :param percent: Процент недоучета
         :param code: Журнал Дата и код программирования True-отключить, False-включить
         :return:
         """
+        percent = int(input('Процент недоучета: '))
+
         w_code = '01' if code else '00'
 
         if percent > 50:
@@ -643,14 +645,17 @@ class ExchangeProtocol(UartSerialPort):
         b = tmp_str.split(".")
         return " ".join(map(lambda x: format(int(x), '02X'), b))
 
-    def write_serial_and_date(self, serial, date):
+    @staticmethod
+    def fill(*args):
+        return str(args[0]).zfill(2)
+
+    def write_serial_and_date(self):
         """
         Запись серийного номера и даты выпуска
-
-        :param serial: Серийный номер (строка)
-        :param date: Дата выпуска (ДД.ММ.ГГ)
-        :return:
         """
+
+        serial = input('Серийный номер: ')
+        date = input('Дата выпуска (дд.мм.гг): ')
         send_serial = self.two_split(serial)
         send_date = self.date_split(date)
         self.param = f'{send_serial} {send_date} 00'
@@ -663,4 +668,36 @@ class ExchangeProtocol(UartSerialPort):
         out = self.exchange('CLEAR_METERS', 4)[1]
         self.checkout('Сброс регистров энергии', out)
         return
+
+    def time_get(self):
+        week_day = {'01': 'Понедельник', '02': 'Вторник', '03': 'Среда',
+                    '04': 'Четверг', '05': 'Пятница', '06': 'Суббота', '07': 'Воскресение'}
+        device_time = self.exchange('GET_TIME', 11)[1][1:9]  # Разбить на правильное отображение
+        print(f'Время прибора: {".".join(list(device_time[4:7]))}'
+              f' {":".join(list(device_time[:3])[::-1])}'
+              f' {week_day[device_time[3]]}'
+              f' {"Зима" if  device_time[7] == "01" else "Лето"}')
+
+    def time_set(self):
+        self.time_get()
+
+        month = [1, 2, 3, 10, 11, 12]
+        dt = datetime.now()
+        seconds = self.fill(dt.second)
+        minutes = self.fill(dt.minute)
+        hours = self.fill(dt.hour)
+        weeks = self.fill(dt.weekday()+1)
+        days = self.fill(dt.day)
+        months = self.fill(dt.month)
+        years = str(dt.year)[-2:]
+        seasons = self.fill(1 if dt.month in month else 0)
+        self.param = f'{seconds} {minutes} {hours} {weeks} {days} {months} {years} {seasons}'
+        out = self.exchange('SET_TIME', 4, param=self.param)[1]
+        self.checkout('Запись времени', out)
+        self.time_get()
+        return
+
+
+
+
 

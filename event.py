@@ -287,7 +287,7 @@ def word_6(tmp):
 
 def print_event(arg):
     for el in arg:
-        var = el.split(' ')
+        var = el
         print(f'{c.GREEN}{".".join(var[4:7])} ({":".join(reversed(var[1:4]))})  |  '
               f'{".".join(var[10:13])} ({":".join(reversed(var[7:10]))}){c.END}')
     print('\n')
@@ -295,7 +295,7 @@ def print_event(arg):
 
 def print_event_2(arg):
     for el in arg:
-        var = el.split(' ')
+        var = el
         print(f'{c.GREEN}{".".join(var[4:7])} ({":".join(reversed(var[1:4]))}){c.END}')
     print('\n')
 
@@ -341,7 +341,7 @@ def print_log(arg: dict):
                         position_11, position_12]
             for el in val:
                 byte_array = []
-                string = el.split(' ')
+                string = el
                 data = '.'.join(string[1:4])
                 count = int(string[4])
                 print(f'{c.BLUE}-{c.END}' * 50)
@@ -361,7 +361,7 @@ def print_log(arg: dict):
                         word_4, word_5, word_6]
             for el in val:
                 byte_array = []
-                string = el.split(' ')
+                string = el
                 time = ':'.join(reversed(string[1:4]))
                 data = '.'.join(string[4:7])
                 print(f'{c.BLUE}-{c.END}' * 50)
