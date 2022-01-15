@@ -3,11 +3,8 @@ import re
 import sys
 import json
 import socket
-from time import sleep
-
 import execute
 import config as cfg
-
 from meters import meters
 from sys import platform
 import event as log
@@ -507,15 +504,15 @@ class ExchangeProtocol(UartSerialPort):
         else:
             k = 10
 
-        keys = ["A+", "PhaseA", "Year_A+", "Year_old_A+", "January_A+", "February_A+", "March_A+", "April_A+",
+        keys = ("A+", "PhaseA", "Year_A+", "Year_old_A+", "January_A+", "February_A+", "March_A+", "April_A+",
                 "May_A+", "June_A+", "July_A+", "August_A+", "September_A+", "October_A+", "November_A+",
-                "December_A+", "Day_A+", "Day_old_A+"]
+                "December_A+", "Day_A+", "Day_old_A+")
 
         if keys[0] in meter:
             param = meters.EnergyReset(k)
             self._param_select(param)
-            param = meters.EnergyResetDouble(k)
-            self._param_select(param)
+            # param = meters.EnergyResetDouble(k)
+            # self._param_select(param)
         if keys[1] in meter:
             param = meters.EnergyPhase(k)
             self._param_select(param)
@@ -591,7 +588,6 @@ class ExchangeProtocol(UartSerialPort):
             return
 
         out = self.exchange('GET_SHUNT', 13, param=self.param)[1]
-        # print(out)
         shunt_mode = int(out[3], 16)
         event_code = int(out[4], 16)
 
@@ -617,10 +613,7 @@ class ExchangeProtocol(UartSerialPort):
         return
 
     def write_shunt(self, code=True):
-        """
-        :param code: Журнал Дата и код программирования True-отключить, False-включить
-        :return:
-        """
+
         percent = int(input('Процент недоучета: '))
 
         w_code = '01' if code else '00'
@@ -650,10 +643,7 @@ class ExchangeProtocol(UartSerialPort):
         return str(args[0]).zfill(2)
 
     def write_serial_and_date(self):
-        """
-        Запись серийного номера и даты выпуска
-        """
-
+        """ Запись серийного номера и даты выпуска"""
         serial = input('Серийный номер: ')
         date = input('Дата выпуска (дд.мм.гг): ')
         send_serial = self.two_split(serial)
@@ -673,10 +663,10 @@ class ExchangeProtocol(UartSerialPort):
         week_day = {'01': 'Понедельник', '02': 'Вторник', '03': 'Среда',
                     '04': 'Четверг', '05': 'Пятница', '06': 'Суббота', '07': 'Воскресение'}
         device_time = self.exchange('GET_TIME', 11)[1][1:9]  # Разбить на правильное отображение
-        print(f'Время прибора: {".".join(list(device_time[4:7]))}'
+        print(f'\nВремя прибора: {".".join(list(device_time[4:7]))}'
               f' {":".join(list(device_time[:3])[::-1])}'
               f' {week_day[device_time[3]]}'
-              f' {"Зима" if  device_time[7] == "01" else "Лето"}')
+              f' {"Зима" if  device_time[7] == "01" else "Лето"}\n')
 
     def time_set(self):
         self.time_get()
@@ -696,8 +686,3 @@ class ExchangeProtocol(UartSerialPort):
         self.checkout('Запись времени', out)
         self.time_get()
         return
-
-
-
-
-

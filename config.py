@@ -1,0 +1,27 @@
+# Connect MODE
+CONNECT_MODE = 0  # 0-RS485, 1-CSD, 2-TCP/IP
+
+# Debug MODE
+DEBUG = True
+
+# Serial port
+UART_PORT = '/dev/ttyUSB0'  # /dev/ttyUSB0
+UART_PORT_TIMEOUT = 1.8  # UART(0.048 - 0.5)
+
+# TCP/IP
+TCP_HOST = '10.151.78.213'  # '10.151.78.112'
+TCP_PORT = 5777  # 31718
+TCP_TIMEOUT = 10  # Timeout TCP(2-10)
+
+# Device
+DEVICE_ID = 0
+DEVICE_LEVEL = 2
+DEVICE_PASSWORD = '222222'
+DEVICE_PASSWORD_MODE = 'hex'
+
+# Update firmware
+FIRMWARE_FILE = 'update/FIRMWARE_2021_exchange.txt'
+
+# CSD MODE
+CSD_PHONE = '+79613358025'  # '+79886036564'
+CSD_TIMEOUT = 15

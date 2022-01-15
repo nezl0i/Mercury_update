@@ -13,7 +13,10 @@ protocol = None
 
 
 def clear():
-    os.system('clear')
+    if sys.platform.startswith('win'):
+        os.system('cls')
+    else:
+        os.system('clear')
     print()
 
 
@@ -44,17 +47,17 @@ def main_menu():
 
     logo()
 
-    print(fmt.format('[0] Установить время', '[9]  Чтение шунта'))
-    print(fmt.format('[1] Сброс регистров энергии', '[10] Запись шунта'))
-    print(fmt.format('[2] Прочитать дескриптор', '[11] Запись показаний'))
-    print(fmt.format('[3] Вектора прерываний', '[12] Обновление ПО'))
-    print(fmt.format('[4] Прочитать пароли', '[13] Записать серийный номер'))
-    print(fmt.format('[5] Изменить протокол', ''))
-    print(fmt.format('[6] Сменить пароль', ''))
-    print(fmt.format('[7] Журналы событий', ''))
-    print(fmt.format('[8] Запись в память', ''))
+    print(fmt.format('[1] Установить время', '[10]  Чтение шунта'))
+    print(fmt.format('[2] Сброс регистров энергии', '[11] Запись шунта'))
+    print(fmt.format('[3] Прочитать дескриптор', '[12] Запись показаний'))
+    print(fmt.format('[4] Вектора прерываний', '[13] Обновление ПО'))
+    print(fmt.format('[5] Прочитать пароли', '[14] Записать серийный номер'))
+    print(fmt.format('[6] Изменить протокол', ''))
+    print(fmt.format('[7] Сменить пароль', ''))
+    print(fmt.format('[8] Журналы событий', ''))
+    print(fmt.format('[9] Запись в память', ''))
     print()
-    print(center.format(f'[100]{c.FAIL} Выход{c.END}'))
+    print(center.format(f'[0]{c.FAIL} Выход{c.END}'))
     print()
 
     try:
@@ -76,29 +79,29 @@ def main_menu():
 
 def choice(tmp):
     global protocol
-    if tmp == 100:
+    if tmp == 0:
         sys.exit()
-    elif tmp == 7:
+    elif tmp == 8:
         return events
     else:
         if not isinstance(protocol, ExchangeProtocol):
             protocol = ExchangeProtocol()
 
         return {
-            tmp == 0: protocol.time_set,
-            tmp == 1: protocol.clear_meters,
-            tmp == 2: protocol.descriptor,
-            tmp == 3: protocol.get_vectors,
-            tmp == 4: protocol.get_password,
-            tmp == 5: protocol.set_spodes,
-            tmp == 6: protocol.set_passwd,
-            # tmp == 7: events,
-            tmp == 8: protocol.write_memory,
-            tmp == 9: protocol.read_shunt,
-            tmp == 10: protocol.write_shunt,
-            tmp == 11: protocol.write_meters,
-            tmp == 12: protocol.update_firmware,
-            tmp == 13: protocol.write_serial_and_date
+            tmp == 1: protocol.time_set,
+            tmp == 2: protocol.clear_meters,
+            tmp == 3: protocol.descriptor,
+            tmp == 4: protocol.get_vectors,
+            tmp == 5: protocol.get_password,
+            tmp == 6: protocol.set_spodes,
+            tmp == 7: protocol.set_passwd,
+            # tmp == 8: events,
+            tmp == 9: protocol.write_memory,
+            tmp == 10: protocol.read_shunt,
+            tmp == 11: protocol.write_shunt,
+            tmp == 12: protocol.write_meters,
+            tmp == 13: protocol.update_firmware,
+            tmp == 14: protocol.write_serial_and_date
         }[True]
 
 
@@ -124,14 +127,14 @@ def events():
     print(fmt.format('[13] Время превышения лимита энергии по тарифу 3', '[26] Время начала/окончания магнитного воздействия'))
     print(fmt.format('', '[27] Все'))
     print()
-    print(center.format(f'[100]{c.FAIL} Назад{c.END}'))
+    print(center.format(f'[0]{c.FAIL} Назад{c.END}'))
     print()
     global protocol
     try:
         ans = int(input(f'{c.GREEN}Номер журнала: ~# {c.END}'))
         if ans == 27:
             ans = None
-        if ans == 100:
+        if ans == 0:
             main_menu()
         else:
             if not isinstance(protocol, ExchangeProtocol):
@@ -140,7 +143,7 @@ def events():
         ready = input('Продолжить? (y/n): ')
         to_answer = ('y', 'yes', 'д', 'да')
         if ready in to_answer:
-            main_menu()
+            events()
         else:
             sys.exit()
     except ValueError:

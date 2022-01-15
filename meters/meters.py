@@ -50,18 +50,22 @@ def EnergyReset(k):
     for i in range(4):
         count_lst.append(f'{format(offset, "04X")[:2]} {format(offset, "04X")[2:]} 10 {ap[i]} {am[i]} {pp[i]} {pm[i]}')
         offset += 0x11
-    return count_lst
-
-
-def EnergyResetDouble(k):
-    count_lst = []
-    ap, am, pp, pm = _reverse2(_format(meter, ['A+', 'A-', 'R+', 'R-'], k))
-
     offset = 0x0100
     for i in range(4):
         count_lst.append(f'{format(offset, "04X")[:2]} {format(offset, "04X")[2:]} 10 {ap[i]} {am[i]} {pp[i]} {pm[i]}')
         offset += 0x11
     return count_lst
+
+
+# def EnergyResetDouble(k):
+#     count_lst = []
+#     ap, am, pp, pm = _reverse2(_format(meter, ['A+', 'A-', 'R+', 'R-'], k))
+#
+#     offset = 0x0100
+#     for i in range(4):
+#         count_lst.append(f'{format(offset, "04X")[:2]} {format(offset, "04X")[2:]} 10 {ap[i]} {am[i]} {pp[i]} {pm[i]}')
+#         offset += 0x11
+#     return count_lst
 
 
 # ===========================================================================================================
