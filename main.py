@@ -155,9 +155,10 @@ def events():
             ans = None
         if ans == 0:
             main_menu()
-        else:
-            if not isinstance(protocol, ExchangeProtocol):
-                protocol = ExchangeProtocol()
+
+        if not isinstance(protocol, ExchangeProtocol):
+            protocol = ExchangeProtocol()
+
         protocol.get_event(number=ans, position=None),
         ready = input('Продолжить? (y/n): ')
         to_answer = ('y', 'yes', 'д', 'да')
