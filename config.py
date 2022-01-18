@@ -1,5 +1,5 @@
 # Connect MODE
-CONNECT_MODE = 0  # 0-RS485, 1-CSD, 2-TCP/IP
+CONNECT_MODE = 2  # 0-RS485, 1-CSD, 2-TCP/IP
 
 # Debug MODE
 DEBUG = True
@@ -9,8 +9,8 @@ UART_PORT = '/dev/ttyUSB0'  # /dev/ttyUSB0
 UART_PORT_TIMEOUT = 1.8  # UART(0.048 - 0.5)
 
 # TCP/IP
-TCP_HOST = '10.151.78.213'  # '10.151.78.112'
-TCP_PORT = 5777  # 31718
+TCP_HOST = '10.151.78.112'  # '10.151.78.112'
+TCP_PORT = 1  # 31718
 TCP_TIMEOUT = 10  # Timeout TCP(2-10)
 
 # Device

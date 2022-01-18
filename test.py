@@ -25,3 +25,4 @@ if __name__ == "__main__":
     # protocol.write_serial_and_date()  # Запись серийного номера и даты выпуска
     # protocol.clear_meters()  # Сброс регистров накопленной энергии
     # protocol.time_set()  # Установка времени
+    protocol.clear_event(journal='15')

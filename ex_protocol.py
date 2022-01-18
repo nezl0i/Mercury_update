@@ -458,6 +458,29 @@ class ExchangeProtocol(UartSerialPort):
         event_dict = dict(zip(tmp_key, tmp_event))
         return log.print_log(event_dict)
 
+    def clear_event(self, journal=None, number=None):
+
+        path = os.path.join("meters", "clear.json")
+        clear_event = json.load(open(path, encoding="utf-8"))
+
+        if journal is not None and number is None:
+            for key, value in clear_event[journal].items():
+                param = ' '.join(value)
+                out = self.exchange('SET_METERS', 4, param=param)[1]
+                self.checkout(f'Очистка журнала [{journal}], запись [{key}]', out)
+        elif journal is not None and number is not None:
+            param = ' '.join(clear_event[journal][number])
+            out = self.exchange('SET_METERS', 4, param=param)[1]
+            self.checkout(f'Очистка журнала [{journal}], запись [{number}]', out)
+        elif journal is None and number is None:
+            for key in clear_event.keys():
+                for key2, value in clear_event[key].items():
+                    param = ' '.join(value)
+                    out = self.exchange('SET_METERS', 4, param=param)[1]
+                    self.checkout(f'Очистка журнала [{key}], запись [{key2}]', out)
+        else:
+            print('Не самый лучший вариант. Попробуй другие параметры.')
+
     def set_passwd(self):
         """Запись паролей для текущего уровня доступа """
         pwd = input('Введите пароль: ')
@@ -476,13 +499,11 @@ class ExchangeProtocol(UartSerialPort):
     def write_memory(self):
         """Прямая запись по физическим адресам памяти
         """
-        memory = int(input('Номер памяти: '))
+        memory = format(int(input('Номер памяти: ')), '02X')
         offset = input('Адрес (через пробел "00 4f"): ')
-        length = int(input('Количество байт: '))
+        count = format(int(input('Количество байт: ')), '02X')
         data = input('Данные (через пробел): ')
-        mem = format(memory, '02X')
-        count = format(length, '02X')
-        send_data = f'{mem} {offset} {count} {data}'
+        send_data = f'{memory} {offset} {count} {data}'
         out = self.exchange('SET_DATA', 4, param=send_data)[1]
         self.checkout('Команда записи', out)
         return
