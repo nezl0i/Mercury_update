@@ -1,6 +1,7 @@
 import os
 import sys
 from ex_protocol import ExchangeProtocol
+from class_brut import Exchange
 
 if sys.platform.startswith('win'):
     from colors import WinColors
@@ -10,6 +11,7 @@ else:
     c = Colors()
 
 protocol = None
+findpass = None
 
 
 def clear():
@@ -52,7 +54,7 @@ def _menu():
     print(fmt.format('[4] Вектора прерываний', '[13] Обновление ПО'))
     print(fmt.format('[5] Прочитать пароли', '[14] Записать серийный номер'))
     print(fmt.format('[6] Сменить пароль', '[15] Очистить журнал'))
-    print(fmt.format('[7] Сменить протокол', ''))
+    print(fmt.format('[7] Сменить протокол', '[16] Брут паролей'))
     print(fmt.format('[8] Журналы событий', ''))
     print(fmt.format('[9] Запись в память', ''))
     print()
@@ -122,6 +124,8 @@ def choice(tmp):
         return events
     elif tmp == 15:
         return clear_events
+    elif tmp == 16:
+        return brut
     else:
         if not isinstance(protocol, ExchangeProtocol):
             protocol = ExchangeProtocol()
@@ -205,6 +209,24 @@ def clear_events():
         pass
     except KeyError:
         main_menu()
+
+
+def brut():
+    global findpass
+
+    if not isinstance(findpass, Exchange):
+        findpass = Exchange()
+    else:
+        del findpass
+        findpass = Exchange()
+
+    findpass.brut_password()
+    ready = input('Продолжить? (y/n): ')
+    to_answer = ('y', 'yes', 'д', 'да')
+    if ready in to_answer:
+        main_menu()
+    else:
+        sys.exit()
 
 
 if __name__ == '__main__':
