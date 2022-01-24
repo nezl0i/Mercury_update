@@ -1,4 +1,4 @@
-# Mercury_Configurator
+# Mercury_Configurator v.0.22
 
 1. Install pyserial (pip install pyserial)
 2. Rename config.example.py to config.py.

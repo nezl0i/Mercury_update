@@ -5,6 +5,7 @@ from sys import platform
 from time import sleep
 from uart import UartSerialPort
 from modbus_crc16 import crc16
+from datetime import datetime
 import config as cfg
 
 try:
@@ -133,6 +134,20 @@ class Exchange(UartSerialPort):
             print(f"Ответ от устройства >> {buffer.hex(' ', -1)}\n")
             print(f'Пароль найден - {input_pass}')
             self.bar.finish()
+
+            app_path = os.getcwd()
+            path = os.path.join(app_path, 'log/password/')
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+                # print("Успешно создана директория %s" % path)
+
+            dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f'passwd_{dt}.txt'
+
+            with open(f'{path}{filename}', "w+") as f:
+                f.write('123456')
+
             return True
         return False
 

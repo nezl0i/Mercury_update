@@ -3,4 +3,4 @@ __pycache__
 update/*
 update/firmware.txt
 config.py
-meters.json.backup
+meters/meters.json.backup
