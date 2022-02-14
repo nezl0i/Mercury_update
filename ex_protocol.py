@@ -250,33 +250,39 @@ class ExchangeProtocol(UartSerialPort):
         """Чтение серийного номера и даты выпуска """
         out = self.exchange('GET_SERIAL', 10)[1]
         tmp_check_out = list(map(lambda x: str(int(x, 16)).zfill(2), out))
-        result = ''.join(tmp_check_out[1:5])
-        self.device = result
+        self.device = ''.join(tmp_check_out[1:5])
         work_data = '.'.join(tmp_check_out[5:8])
         print(f'{c.GREEN}Серийный номер - {self.device}\n'
               f'Дата выпуска - {work_data}{c.END}\n')
-        return
+
+    @staticmethod
+    def to_bit(item):
+        return format(int(item, 16), "08b")
+
+    @staticmethod
+    def to_list(item):
+        return list(map(lambda x: str(int(x, 16)).zfill(2), item))
 
     def execution(self):
         """Чтение варианта исполнения """
         var = self.exchange('GET_EXECUTION', 27)[1]
-        tmp_serial = list(map(lambda x: str(int(x, 16)).zfill(2), var[1:5]))
-        tmp_data = list(map(lambda x: str(int(x, 16)).zfill(2), var[5:8]))
-        tmp_version = list(map(lambda x: str(int(x, 16)).zfill(2), var[8:11]))
-        tmp_revision = list(map(lambda x: str(int(x, 16)).zfill(2), var[19:21]))
+        tmp_serial = self.to_list(var[1:5])
+        tmp_data = self.to_list(var[5:8])
+        tmp_version = self.to_list(var[8:11])
+        tmp_revision = self.to_list(var[19:21])
         self.device = ''.join(tmp_serial)
         data = '.'.join(tmp_data)
         self.version = '.'.join(tmp_version)
         revision = '.'.join(tmp_revision)
         crc_po = f"{''.join(var[17:19]).upper()}"
 
-        byte_1 = format(int(var[11], 16), "08b")
-        byte_2 = format(int(var[12], 16), "08b")
-        byte_3 = format(int(var[13], 16), "08b")
-        byte_4 = format(int(var[14], 16), "08b")
-        byte_5 = format(int(var[15], 16), "08b")
-        byte_6 = format(int(var[16], 16), "08b")
-        byte_7 = format(int(var[21], 16), "08b")
+        byte_1 = self.to_bit(var[11])
+        byte_2 = self.to_bit(var[12])
+        byte_3 = self.to_bit(var[13])
+        byte_4 = self.to_bit(var[14])
+        byte_5 = self.to_bit(var[15])
+        byte_6 = self.to_bit(var[16])
+        byte_7 = self.to_bit(var[21])
         # byte_8 = format(int(check_out[22], 16), "08b")
         self.imp = execute.byte_25(byte_2[4:]).split()[0]  # Количество импульсов
         return execute.print_exec(self.device, data, self.version, revision, crc_po, byte_1, byte_2,
