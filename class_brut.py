@@ -15,7 +15,7 @@ except ImportError:
         os.system('py -m pip install progress')
     else:
         os.system('python3 -m pip install progress')
-from progress.bar import IncrementalBar
+    from progress.bar import IncrementalBar
 
 
 class Exchange(UartSerialPort):
@@ -112,14 +112,19 @@ class Exchange(UartSerialPort):
             # return self.flag
 
     def init(self):
-        if self.mode == 0:
-            self._check_test()
-
-        if self.mode == 1:
-            self.csd_connect()
-
-        if self.mode == 2:
-            self.socket_connect()
+        match self.mode:
+            case 0:
+                self._check_test()
+            case 1:
+                self.csd_connect()
+            case 2:
+                self.socket_connect()
+        # if self.mode == 0:
+        #     self._check_test()
+        # if self.mode == 1:
+        #     self.csd_connect()
+        # if self.mode == 2:
+        #     self.socket_connect()
 
     def reading(self, pk, input_pass=None):
 
@@ -146,7 +151,7 @@ class Exchange(UartSerialPort):
             filename = f'passwd_{dt}.txt'
 
             with open(f'{path}{filename}', "w+") as f:
-                f.write('123456')
+                f.write(input_pass)
 
             return True
         return False

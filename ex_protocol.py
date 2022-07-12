@@ -4,10 +4,10 @@ import sys
 import json
 import socket
 import execute
-import config as cfg
-from meters import meters
-from sys import platform
 import event as log
+import config as cfg
+from sys import platform
+from meters import meters
 from command import Command
 from datetime import datetime
 from modbus_crc16 import crc16
@@ -29,6 +29,9 @@ def repeat(func):
             if check:
                 if cfg.DEBUG:
                     print(f'[{current_time}] :{c.FAIL} <<', ' '.join(buffer), c.END)
+                else:
+                    sys.stdout.write('Идет обмен данными ...\r')
+                sys.stdout.flush()
                 return check, buffer
             else:
                 if buffer and len(buffer) != 0:
@@ -186,7 +189,6 @@ class ExchangeProtocol(UartSerialPort):
         except socket.error as err:
             print(err)
             sys.exit()
-        return
 
     @repeat
     def exchange(self, command_name, count, param=''):
@@ -222,19 +224,16 @@ class ExchangeProtocol(UartSerialPort):
         """Тест канала связи """
         out = self.exchange('TEST', 4)[1]
         self.checkout('Тест канала связи', out)
-        return
 
     def open_session(self):
         """Авторизация с устройством """
         out = self.exchange('OPEN_SESSION', 4)[1]
         self.checkout('Открытие канала связи', out)
-        return
 
     def close_session(self):
         """Закрытие канала связи """
         out = self.exchange('CLOSE_SESSION', 4)[1]
         self.checkout('Закрытие канала связи', out)
-        return
 
     def read_identifier(self):
         """Чтение идентификатора прибора (id) """
@@ -244,7 +243,6 @@ class ExchangeProtocol(UartSerialPort):
         del self.combine
         self._init_command()
         print(f'{c.GREEN}Идентификатор ПУ - {id_result}{c.END}\n')
-        return
 
     def read_serial(self):
         """Чтение серийного номера и даты выпуска """
@@ -294,7 +292,6 @@ class ExchangeProtocol(UartSerialPort):
         desc = f'{out[2]}{out[1]}'
         print(f'{c.GREEN}Дескриптор ПУ - {desc}\n'
               f'Микроконтроллер - {self.HARDWARE[desc.upper()]}{c.END}\n')
-        return
 
     def get_vectors(self):
         """Чтение векторов прерываний """
@@ -304,7 +301,6 @@ class ExchangeProtocol(UartSerialPort):
             var.append(' '.join(self.exchange('GET_VECTORS', 19, param=param[i])[1][1:16]))
         print(f'{c.GREEN}Вектора прерываний:')
         print(*var, c.END, sep='\n')
-        return
 
     def get_password(self):
         """Чтение паролей """
@@ -320,7 +316,6 @@ class ExchangeProtocol(UartSerialPort):
                 passwd = ''.join(map(lambda x: bytearray.fromhex(x).decode(), el))
                 print(f"{c.GREEN}Пароль {i} уровня- {''.join(passwd)} (ASCII){c.END}")
         print('\n')
-        return
 
     def update_firmware(self):
         hi_address = None
@@ -383,7 +378,6 @@ class ExchangeProtocol(UartSerialPort):
               f'Межсимвольный таймаут - {byte_timeout}\n'
               f'Таймаут неактивности - {active_time}\n'
               f'Выполнение - {self.combine.get(out[1])}{c.END}\n')
-        return
 
     def get_event(self, number=None, position=None):
         """Чтение журналов событий
@@ -435,15 +429,15 @@ class ExchangeProtocol(UartSerialPort):
             count = 9 if list_all[i] in list_0 else 15
 
             if flag == 1:
-                print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
+                # print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
                 for j in range(10):
                     index = format(j, '02X')
                     tmp_out.append(self.exchange('GET_EVENT', count, param=f'{key} {index}')[1])
             elif flag == 2:
-                print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
+                # print(f'{c.GREEN}[ {log.event(key)} ]{c.END}')
                 tmp_out.append(self.exchange('GET_EVENT', count, param=f'{key} {pos}')[1])
             elif flag == 3:
-                print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
+                # print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
                 count = 9 if param in list_0 else 15
                 for j in range(10):
                     index = format(j, '02X')
@@ -452,7 +446,7 @@ class ExchangeProtocol(UartSerialPort):
                 tmp_key.append(param)
                 break
             elif flag == 4:
-                print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
+                # print(f'{c.GREEN}[ {log.event(param)} ]{c.END}')
                 count = 9 if param in list_0 else 15
                 tmp_out.append(' '.join(self.exchange('GET_EVENT', count, param=f'{param} {pos}')[1]))
                 tmp_event.append(tmp_out[:])
@@ -500,7 +494,6 @@ class ExchangeProtocol(UartSerialPort):
             sys.exit()
         out = self.exchange('SET_PASSWD', 4, param=f'{self.access} {self.passwd} {tmp_pass}')[1]
         self.checkout('Изменение пароля', out)
-        return
 
     def write_memory(self):
         """Прямая запись по физическим адресам памяти
@@ -512,13 +505,11 @@ class ExchangeProtocol(UartSerialPort):
         send_data = f'{memory} {offset} {count} {data}'
         out = self.exchange('SET_DATA', 4, param=send_data)[1]
         self.checkout('Команда записи', out)
-        return
 
     def _param_select(self, param):
         for i in range(len(param)):
             out = self.exchange('SET_METERS', 4, param=param[i])[1]
             self.checkout('Запись показаний', out)
-        return
 
     def write_meters(self):
         path = os.path.join("meters", "meters.json")
@@ -612,7 +603,6 @@ class ExchangeProtocol(UartSerialPort):
             self.param = '10 00 0A'
         else:
             print('Тип прибора не определен.')
-            return
 
         out = self.exchange('GET_SHUNT', 13, param=self.param)[1]
         shunt_mode = int(out[3], 16)
@@ -637,7 +627,6 @@ class ExchangeProtocol(UartSerialPort):
         print(f'{c.GREEN}Значение - {shunt_value}{c.END}')
         print(f'{c.GREEN}Недоучет - {percent} %{c.END}')
         print(f'{c.GREEN}Журнал "Дата и код программирования" - {print_event_code}{c.END}\n')
-        return
 
     def write_shunt(self, code=True):
 
@@ -653,7 +642,6 @@ class ExchangeProtocol(UartSerialPort):
             self.param = f'00 {value} 02 {w_code} 00 00 00 00 00 00'
         out = self.exchange('SET_SHUNT', 4, param=self.param)[1]
         self.checkout('Команда записи шунта', out)
-        return
 
     @staticmethod
     def two_split(tmp_str):
@@ -678,13 +666,11 @@ class ExchangeProtocol(UartSerialPort):
         self.param = f'{send_serial} {send_date} 00'
         out = self.exchange('SET_SERIAL', 4, param=self.param)[1]
         self.checkout('Команда записи серийного номера и даты выпуска', out)
-        return
 
     def clear_meters(self):
         """ Сброс регистров накопленной энергии"""
         out = self.exchange('CLEAR_METERS', 4)[1]
         self.checkout('Сброс регистров энергии', out)
-        return
 
     def time_get(self):
         week_day = {'01': 'Понедельник', '02': 'Вторник', '03': 'Среда',
@@ -712,4 +698,3 @@ class ExchangeProtocol(UartSerialPort):
         out = self.exchange('SET_TIME', 4, param=self.param)[1]
         self.checkout('Запись времени', out)
         self.time_get()
-        return

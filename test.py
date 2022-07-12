@@ -16,7 +16,7 @@ if __name__ == "__main__":
     # protocol.update_firmware()  # Обновление ПО
     # protocol.get_password()  # Чтение паролей
     # protocol.set_spodes()  # Изменение протокола (СПОДЭС, Меркурий)
-    # protocol.get_event()  # Чтение журналов событий
+    protocol.get_event()  # Чтение журналов событий
     # protocol.set_passwd()    # Запись нового пароля
     # protocol.write_memory()  # Запись в память
     # protocol.write_meters()  # Запись показаний

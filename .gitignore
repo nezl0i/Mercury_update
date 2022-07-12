@@ -4,3 +4,4 @@ update/*
 update/firmware.txt
 config.py
 meters/meters.json.backup
+venv
